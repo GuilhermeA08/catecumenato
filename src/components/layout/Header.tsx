@@ -2,6 +2,7 @@ import { Link } from "@tanstack/react-router";
 import {
 	Church,
 	Download,
+	GraduationCap,
 	LayoutDashboard,
 	PieChart,
 	Trash2,
@@ -81,6 +82,11 @@ export function Header() {
 						to="/inscritos/idades"
 						icon={<PieChart className="h-4 w-4" />}
 						label="Idades"
+					/>
+					<NavLink
+						to="/turmas"
+						icon={<GraduationCap className="h-4 w-4" />}
+						label="Turmas"
 					/>
 				</nav>
 

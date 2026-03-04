@@ -6,6 +6,7 @@ import {
 	Copy,
 	Edit3,
 	Save,
+	Trash2,
 	X,
 } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -30,7 +31,7 @@ import type {
 } from "../../types/inscricao";
 import { copiarParaClipboard } from "../../utils/clipboard";
 import { obterValor, temValor } from "../../utils/completude";
-import { mascaraData, mascaraTelefone } from "../../utils/mascaras";
+import { mascaraTelefone } from "../../utils/mascaras";
 
 export const Route = createFileRoute("/inscritos/$id")({
 	component: InscritoPage,
@@ -58,8 +59,13 @@ function contarFaltantesPorSecao(inscricao: Inscricao, secao: string): number {
 function InscritoPage() {
 	const navigate = useNavigate();
 	const { id } = Route.useParams();
-	const { getById, atualizarInscricao, alterarStatus, carregado } =
-		useInscricoesStore();
+	const {
+		getById,
+		atualizarInscricao,
+		alterarStatus,
+		excluirInscricao,
+		carregado,
+	} = useInscricoesStore();
 	const [editando, setEditando] = useState(false);
 	const [copiouTudo, setCopiouTudo] = useState(false);
 
@@ -137,6 +143,24 @@ function InscritoPage() {
 
 					{/* Ações */}
 					<div className="flex flex-wrap gap-2">
+						{" "}
+						<Button
+							variant="ghost"
+							onClick={() => {
+								if (
+									confirm(
+										`Deseja excluir permanentemente "${inscricao.crismando.nome ?? "este inscrito"}"? Esta ação não pode ser desfeita.`,
+									)
+								) {
+									excluirInscricao(id);
+									navigate({ to: "/inscritos" });
+								}
+							}}
+							className="text-red-500 hover:text-red-600"
+							title="Excluir inscrito"
+						>
+							<Trash2 className="h-4 w-4" />
+						</Button>{" "}
 						<WhatsAppButton inscricao={inscricao} />
 						<Button variant="secondary" onClick={handleCopiarTudo}>
 							{copiouTudo ? (

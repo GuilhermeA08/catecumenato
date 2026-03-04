@@ -27,6 +27,8 @@ interface InscricoesState {
 		dados: Partial<Omit<Inscricao, "id">>,
 	) => void;
 	alterarStatus: (id: string, status: Status, override?: boolean) => void;
+	vincularTurma: (id: string, turmaId: string | null) => void;
+	excluirInscricao: (id: string) => void;
 	exportar: () => void;
 	limpar: () => void;
 
@@ -53,6 +55,7 @@ export const useInscricoesStore = create<InscricoesState>()(
 			adicionarInscricao: (dados) => {
 				const nova = recalcularInscricao({
 					id: crypto.randomUUID(),
+					turmaId: dados.turmaId ?? null,
 					crismando: dados.crismando ?? {
 						nome: null,
 						estadoCivil: null,
@@ -142,6 +145,20 @@ export const useInscricoesStore = create<InscricoesState>()(
 							atualizadoEm: new Date().toISOString(),
 						};
 					}),
+				}));
+			},
+
+			vincularTurma: (id, turmaId) => {
+				set((state) => ({
+					inscricoes: state.inscricoes.map((i) =>
+						i.id === id ? { ...i, turmaId } : i,
+					),
+				}));
+			},
+
+			excluirInscricao: (id) => {
+				set((state) => ({
+					inscricoes: state.inscricoes.filter((i) => i.id !== id),
 				}));
 			},
 

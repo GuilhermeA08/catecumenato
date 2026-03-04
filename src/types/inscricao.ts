@@ -51,6 +51,7 @@ export interface DadosCrismando {
 
 export interface Inscricao {
 	id: string;
+	turmaId: string | null;
 	crismando: DadosCrismando;
 	pai: DadosPessoa;
 	mae: DadosPessoa;

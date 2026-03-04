@@ -12,7 +12,9 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as AboutRouteImport } from './routes/about'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as TurmasIndexRouteImport } from './routes/turmas/index'
 import { Route as InscritosIndexRouteImport } from './routes/inscritos/index'
+import { Route as TurmasIdRouteImport } from './routes/turmas/$id'
 import { Route as InscritosNovoRouteImport } from './routes/inscritos/novo'
 import { Route as InscritosIdadesRouteImport } from './routes/inscritos/idades'
 import { Route as InscritosIdRouteImport } from './routes/inscritos/$id'
@@ -32,9 +34,19 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const TurmasIndexRoute = TurmasIndexRouteImport.update({
+  id: '/turmas/',
+  path: '/turmas/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const InscritosIndexRoute = InscritosIndexRouteImport.update({
   id: '/inscritos/',
   path: '/inscritos/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TurmasIdRoute = TurmasIdRouteImport.update({
+  id: '/turmas/$id',
+  path: '/turmas/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
 const InscritosNovoRoute = InscritosNovoRouteImport.update({
@@ -60,7 +72,9 @@ export interface FileRoutesByFullPath {
   '/inscritos/$id': typeof InscritosIdRoute
   '/inscritos/idades': typeof InscritosIdadesRoute
   '/inscritos/novo': typeof InscritosNovoRoute
+  '/turmas/$id': typeof TurmasIdRoute
   '/inscritos/': typeof InscritosIndexRoute
+  '/turmas/': typeof TurmasIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -69,7 +83,9 @@ export interface FileRoutesByTo {
   '/inscritos/$id': typeof InscritosIdRoute
   '/inscritos/idades': typeof InscritosIdadesRoute
   '/inscritos/novo': typeof InscritosNovoRoute
+  '/turmas/$id': typeof TurmasIdRoute
   '/inscritos': typeof InscritosIndexRoute
+  '/turmas': typeof TurmasIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -79,7 +95,9 @@ export interface FileRoutesById {
   '/inscritos/$id': typeof InscritosIdRoute
   '/inscritos/idades': typeof InscritosIdadesRoute
   '/inscritos/novo': typeof InscritosNovoRoute
+  '/turmas/$id': typeof TurmasIdRoute
   '/inscritos/': typeof InscritosIndexRoute
+  '/turmas/': typeof TurmasIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -90,7 +108,9 @@ export interface FileRouteTypes {
     | '/inscritos/$id'
     | '/inscritos/idades'
     | '/inscritos/novo'
+    | '/turmas/$id'
     | '/inscritos/'
+    | '/turmas/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -99,7 +119,9 @@ export interface FileRouteTypes {
     | '/inscritos/$id'
     | '/inscritos/idades'
     | '/inscritos/novo'
+    | '/turmas/$id'
     | '/inscritos'
+    | '/turmas'
   id:
     | '__root__'
     | '/'
@@ -108,7 +130,9 @@ export interface FileRouteTypes {
     | '/inscritos/$id'
     | '/inscritos/idades'
     | '/inscritos/novo'
+    | '/turmas/$id'
     | '/inscritos/'
+    | '/turmas/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -118,7 +142,9 @@ export interface RootRouteChildren {
   InscritosIdRoute: typeof InscritosIdRoute
   InscritosIdadesRoute: typeof InscritosIdadesRoute
   InscritosNovoRoute: typeof InscritosNovoRoute
+  TurmasIdRoute: typeof TurmasIdRoute
   InscritosIndexRoute: typeof InscritosIndexRoute
+  TurmasIndexRoute: typeof TurmasIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -144,11 +170,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/turmas/': {
+      id: '/turmas/'
+      path: '/turmas'
+      fullPath: '/turmas/'
+      preLoaderRoute: typeof TurmasIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/inscritos/': {
       id: '/inscritos/'
       path: '/inscritos'
       fullPath: '/inscritos/'
       preLoaderRoute: typeof InscritosIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/turmas/$id': {
+      id: '/turmas/$id'
+      path: '/turmas/$id'
+      fullPath: '/turmas/$id'
+      preLoaderRoute: typeof TurmasIdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/inscritos/novo': {
@@ -182,7 +222,9 @@ const rootRouteChildren: RootRouteChildren = {
   InscritosIdRoute: InscritosIdRoute,
   InscritosIdadesRoute: InscritosIdadesRoute,
   InscritosNovoRoute: InscritosNovoRoute,
+  TurmasIdRoute: TurmasIdRoute,
   InscritosIndexRoute: InscritosIndexRoute,
+  TurmasIndexRoute: TurmasIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
