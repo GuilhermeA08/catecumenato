@@ -1,6 +1,7 @@
 import Papa from "papaparse";
 import { COLUNAS_CSV, ORDEM_COLUNAS_CSV } from "../../../constants/colunasCSV";
 import type { Inscricao } from "../../../types/inscricao";
+import type { Turma } from "../../../types/turma";
 import {
 	calcularStatus,
 	listarCamposFaltantes,
@@ -98,8 +99,10 @@ function linhaParaInscricao(linha: Record<string, unknown>): Inscricao {
 }
 
 // Parse de arquivo CSV → lista de Inscricao
+// resolverTurma: recebe o nome da turma e retorna o turmaId (cria se necessário)
 export async function parseCSV(
 	file: File,
+	resolverTurma?: (nome: string) => string,
 ): Promise<{ inscricoes: Inscricao[]; erros: string[] }> {
 	return new Promise((resolve) => {
 		Papa.parse(file, {
@@ -116,6 +119,11 @@ export async function parseCSV(
 				dados.forEach((linha, idx) => {
 					try {
 						const inscricao = linhaParaInscricao(linha);
+						// Resolver turma pelo nome na coluna TURMA
+						const nomeTurma = normalizar(linha["TURMA"]);
+						if (nomeTurma && resolverTurma) {
+							inscricao.turmaId = resolverTurma(nomeTurma);
+						}
 						inscricoes.push(inscricao);
 					} catch (e) {
 						erros.push(
@@ -140,9 +148,26 @@ export async function parseCSV(
 }
 
 // Converte lista de inscrições de volta para CSV e dispara download
-export function exportarCSV(inscricoes: Inscricao[]): void {
+export function exportarCSV(
+	inscricoes: Inscricao[],
+	turmas: Turma[] = [],
+): void {
+	const turmaMap = new Map(turmas.map((t) => [t.id, t.nome]));
+
+	const colunasExport = ["TURMA", "STATUS", ...ORDEM_COLUNAS_CSV];
+
 	const linhas = inscricoes.map((inscricao) => {
 		const linha: Record<string, string> = {};
+
+		// Turma
+		linha["TURMA"] = inscricao.turmaId
+			? (turmaMap.get(inscricao.turmaId) ?? inscricao.turmaId)
+			: "";
+
+		// Status
+		linha["STATUS"] =
+			inscricao.status === "concluido" ? "Concluído" : "Pendente";
+
 		for (const coluna of ORDEM_COLUNAS_CSV) {
 			const path = COLUNAS_CSV[coluna] ?? "";
 			const valor = obterValor(inscricao, path);
@@ -159,7 +184,7 @@ export function exportarCSV(inscricoes: Inscricao[]): void {
 	});
 
 	const csv = Papa.unparse(linhas, {
-		columns: ORDEM_COLUNAS_CSV,
+		columns: colunasExport,
 	});
 
 	const hoje = new Date().toISOString().split("T")[0];

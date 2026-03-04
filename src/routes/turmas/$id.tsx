@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import {
 	ArrowLeft,
+	FileDown,
 	GraduationCap,
 	Search,
 	UserMinus,
@@ -10,6 +11,7 @@ import {
 import { useMemo, useState } from "react";
 import { PageContainer } from "../../components/layout/PageContainer";
 import { Button } from "../../components/ui/Button";
+import { exportarTurmaPDF } from "../../features/inscricoes/services/pdfService";
 import { useInscricoesStore } from "../../stores/inscricoesStore";
 import { useTurmasStore } from "../../stores/turmasStore";
 import type { Inscricao } from "../../types/inscricao";
@@ -214,12 +216,25 @@ function TurmaDetalhePage() {
 				title={turma.nome}
 				description={turma.descricao ?? ""}
 				actions={
-					<Link to="/turmas">
-						<Button variant="secondary" size="sm">
-							<ArrowLeft className="h-4 w-4" />
-							Turmas
-						</Button>
-					</Link>
+					<div className="flex items-center gap-2">
+						{membros.length > 0 && (
+							<Button
+								variant="secondary"
+								size="sm"
+								onClick={() => exportarTurmaPDF(turma, membros)}
+								title="Exportar lista em PDF"
+							>
+								<FileDown className="h-4 w-4" />
+								Exportar PDF
+							</Button>
+						)}
+						<Link to="/turmas">
+							<Button variant="secondary" size="sm">
+								<ArrowLeft className="h-4 w-4" />
+								Turmas
+							</Button>
+						</Link>
+					</div>
 				}
 			>
 				{/* Info da turma */}

@@ -174,7 +174,7 @@ function ModalTurma({
 
 function TurmasPage() {
 	const { turmas, criarTurma, atualizarTurma, excluirTurma } = useTurmasStore();
-	const { inscricoes } = useInscricoesStore();
+	const { inscricoes, vincularTurma } = useInscricoesStore();
 
 	const [mostrarModal, setMostrarModal] = useState(false);
 	const [editandoId, setEditandoId] = useState<string | null>(null);
@@ -216,12 +216,16 @@ function TurmasPage() {
 
 	function handleExcluir(id: string) {
 		const turma = turmas.find((t) => t.id === id);
-		const membros = inscricoes.filter((i) => i.turmaId === id).length;
+		const membros = inscricoes.filter((i) => i.turmaId === id);
 		const msg =
-			membros > 0
-				? `A turma "${turma?.nome}" tem ${membros} membro(s). Ao excluir, eles ficarão sem turma. Confirma?`
+			membros.length > 0
+				? `A turma "${turma?.nome}" tem ${membros.length} membro(s). Ao excluir, eles ficarão sem turma. Confirma?`
 				: `Deseja excluir a turma "${turma?.nome}"?`;
 		if (confirm(msg)) {
+			// Desvincular todos os inscritos desta turma antes de excluí-la
+			for (const inscrito of membros) {
+				vincularTurma(inscrito.id, null);
+			}
 			excluirTurma(id);
 		}
 	}

@@ -5,6 +5,7 @@ import {
 	parseCSV,
 } from "../../features/inscricoes/services/csvService";
 import { useInscricoesStore } from "../../stores/inscricoesStore";
+import { useTurmasStore } from "../../stores/turmasStore";
 import { cn } from "../../utils/cn";
 import { Button } from "../ui/Button";
 
@@ -17,6 +18,15 @@ export function CSVUploader() {
 		erros: string[];
 	} | null>(null);
 	const setInscricoes = useInscricoesStore((s) => s.setInscricoes);
+	const { turmas, criarTurma } = useTurmasStore();
+
+	function resolverTurma(nome: string): string {
+		const existente = turmas.find(
+			(t) => t.nome.trim().toLowerCase() === nome.trim().toLowerCase(),
+		);
+		if (existente) return existente.id;
+		return criarTurma({ nome: nome.trim() });
+	}
 
 	async function processarArquivo(file: File) {
 		if (!file.name.endsWith(".csv")) {
@@ -27,7 +37,7 @@ export function CSVUploader() {
 		setLoading(true);
 		setResultado(null);
 
-		const { inscricoes, erros } = await parseCSV(file);
+		const { inscricoes, erros } = await parseCSV(file, resolverTurma);
 		setInscricoes(inscricoes);
 		setResultado({ total: inscricoes.length, erros });
 		setLoading(false);

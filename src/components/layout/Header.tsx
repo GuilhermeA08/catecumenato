@@ -22,11 +22,11 @@ function NavLink({ to, icon, label }: NavLinkProps) {
 	return (
 		<Link
 			to={to}
-			className="[&.active]:text-blue-600 [&.active]:font-semibold flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-900"
+			className="[&.active]:text-blue-600 [&.active]:font-semibold flex items-center gap-1.5 rounded-lg px-2 py-2 text-sm text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-900 sm:px-3"
 			activeOptions={{ exact: to === "/" }}
 		>
 			{icon}
-			{label}
+			<span className="hidden sm:inline">{label}</span>
 		</Link>
 	);
 }

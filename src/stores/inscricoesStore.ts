@@ -6,6 +6,7 @@ import {
 } from "../features/inscricoes/services/csvService";
 import { Status } from "../types/enums";
 import type { Inscricao } from "../types/inscricao";
+import { useTurmasStore } from "./turmasStore";
 
 interface InscricoesState {
 	inscricoes: Inscricao[];
@@ -163,7 +164,8 @@ export const useInscricoesStore = create<InscricoesState>()(
 			},
 
 			exportar: () => {
-				exportarCSV(get().inscricoes);
+				const turmas = useTurmasStore.getState().turmas;
+				exportarCSV(get().inscricoes, turmas);
 			},
 
 			limpar: () => {
