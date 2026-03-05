@@ -22,7 +22,7 @@ function NavLink({ to, icon, label }: NavLinkProps) {
 	return (
 		<Link
 			to={to}
-			className="[&.active]:text-blue-600 [&.active]:font-semibold flex items-center gap-1.5 rounded-lg px-2 py-2 text-sm text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-900 sm:px-3"
+			className="[&.active]:text-blue-400 [&.active]:font-semibold flex items-center gap-1.5 rounded-lg px-2 py-2 text-sm text-gray-300 transition-colors hover:bg-gray-800 hover:text-white sm:px-3"
 			activeOptions={{ exact: to === "/" }}
 		>
 			{icon}
@@ -46,7 +46,7 @@ export function Header() {
 	}
 
 	return (
-		<header className="sticky top-0 z-50 border-b border-gray-200 bg-white/90 backdrop-blur-sm">
+		<header className="sticky top-0 z-50 border-b border-gray-800 bg-gray-900">
 			<div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3">
 				{/* Logo */}
 				<Link to="/" className="flex items-center gap-2">
@@ -54,10 +54,10 @@ export function Header() {
 						<Church className="h-4 w-4 text-white" />
 					</div>
 					<div className="hidden sm:block">
-						<p className="text-sm font-bold leading-none text-gray-900">
+						<p className="text-sm font-bold leading-none text-white">
 							Catecumenato
 						</p>
-						<p className="text-xs text-gray-500">Paróquia de Santana</p>
+						<p className="text-xs text-gray-400">Paróquia de Santana</p>
 					</div>
 				</Link>
 

@@ -63,13 +63,13 @@ function InscritosPage() {
 			<div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center">
 				{/* Busca */}
 				<div className="relative flex-1">
-					<Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+					<Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-500" />
 					<input
 						type="text"
 						placeholder="Buscar por nome..."
 						value={busca}
 						onChange={(e) => setBusca(e.target.value)}
-						className="w-full rounded-lg border border-gray-300 py-2 pl-9 pr-4 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+						className="w-full rounded-lg border border-gray-400 bg-white py-2 pl-9 pr-4 text-sm text-gray-900 placeholder:text-gray-500 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
 					/>
 					{busca && (
 						<button

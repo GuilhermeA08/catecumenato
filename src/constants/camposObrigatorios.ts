@@ -4,6 +4,8 @@ export interface CampoConfig {
 	path: string;
 	label: string;
 	secao: string;
+	/** Se false, o campo conta p/ completude mas NÃO afeta o status PENDENTE/CONCLUIDO */
+	afetaStatus?: boolean;
 	condicao?: (inscricao: Inscricao) => boolean;
 }
 
@@ -54,9 +56,21 @@ export const CAMPOS_OBRIGATORIOS: CampoConfig[] = [
 
 	// Pai
 	{ path: "pai.nome", label: "Nome do Pai", secao: "Pai" },
+	{ path: "pai.celular", label: "Celular do Pai", secao: "Pai", afetaStatus: false },
+	{ path: "pai.estadoCivil", label: "Estado Civil do Pai", secao: "Pai", afetaStatus: false },
+	{ path: "pai.naturalidade", label: "Naturalidade do Pai", secao: "Pai", afetaStatus: false },
+	{ path: "pai.endereco", label: "Endereço do Pai", secao: "Pai", afetaStatus: false },
+	{ path: "pai.bairro", label: "Bairro do Pai", secao: "Pai", afetaStatus: false },
+	{ path: "pai.municipio", label: "Município do Pai", secao: "Pai", afetaStatus: false },
 
 	// Mãe
 	{ path: "mae.nome", label: "Nome da Mãe", secao: "Mãe" },
+	{ path: "mae.celular", label: "Celular da Mãe", secao: "Mãe", afetaStatus: false },
+	{ path: "mae.estadoCivil", label: "Estado Civil da Mãe", secao: "Mãe", afetaStatus: false },
+	{ path: "mae.naturalidade", label: "Naturalidade da Mãe", secao: "Mãe", afetaStatus: false },
+	{ path: "mae.endereco", label: "Endereço da Mãe", secao: "Mãe", afetaStatus: false },
+	{ path: "mae.bairro", label: "Bairro da Mãe", secao: "Mãe", afetaStatus: false },
+	{ path: "mae.municipio", label: "Município da Mãe", secao: "Mãe", afetaStatus: false },
 ];
 
 export const CAMPOS_OPCIONAIS: CampoConfig[] = [
@@ -70,18 +84,6 @@ export const CAMPOS_OPCIONAIS: CampoConfig[] = [
 		label: "Paróquia da Eucaristia",
 		secao: "Crismando",
 	},
-	{ path: "pai.estadoCivil", label: "Estado Civil do Pai", secao: "Pai" },
-	{ path: "pai.naturalidade", label: "Naturalidade do Pai", secao: "Pai" },
-	{ path: "pai.endereco", label: "Endereço do Pai", secao: "Pai" },
-	{ path: "pai.bairro", label: "Bairro do Pai", secao: "Pai" },
-	{ path: "pai.municipio", label: "Município do Pai", secao: "Pai" },
-	{ path: "pai.celular", label: "Celular do Pai", secao: "Pai" },
-	{ path: "mae.estadoCivil", label: "Estado Civil da Mãe", secao: "Mãe" },
-	{ path: "mae.naturalidade", label: "Naturalidade da Mãe", secao: "Mãe" },
-	{ path: "mae.endereco", label: "Endereço da Mãe", secao: "Mãe" },
-	{ path: "mae.bairro", label: "Bairro da Mãe", secao: "Mãe" },
-	{ path: "mae.municipio", label: "Município da Mãe", secao: "Mãe" },
-	{ path: "mae.celular", label: "Celular da Mãe", secao: "Mãe" },
 	{
 		path: "padrinho.nome",
 		label: "Nome do Padrinho/Madrinha",
