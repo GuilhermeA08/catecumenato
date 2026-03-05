@@ -22,7 +22,7 @@ function NavLink({ to, icon, label }: NavLinkProps) {
 	return (
 		<Link
 			to={to}
-			className="[&.active]:text-blue-400 [&.active]:font-semibold flex items-center gap-1.5 rounded-lg px-2 py-2 text-sm text-gray-300 transition-colors hover:bg-gray-800 hover:text-white sm:px-3"
+			className="[&.active]:text-blue-400 [&.active]:font-semibold flex items-center gap-1.5 rounded-lg px-2 py-2 text-sm text-white transition-colors hover:bg-gray-800 hover:text-white sm:px-3"
 			activeOptions={{ exact: to === "/" }}
 		>
 			{icon}
