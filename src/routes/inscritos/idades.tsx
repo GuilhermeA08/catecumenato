@@ -82,8 +82,8 @@ function IdadesPage() {
 	const { turmas } = useTurmasStore();
 
 	const turmaById = useMemo(() => {
-		const map = new Map<string, string>();
-		for (const t of turmas) map.set(t.id, t.nome);
+		const map = new Map<string, { nome: string; cor: string }>();
+		for (const t of turmas) map.set(t.id, { nome: t.nome, cor: t.cor });
 		return map;
 	}, [turmas]);
 
@@ -241,17 +241,27 @@ function InscritoItem({
 }: {
 	inscrito: Inscricao;
 	idade: number | null;
-	nomeTurma: string | null;
+	nomeTurma: { nome: string; cor: string } | null;
 }) {
 	return (
 		<Link
 			to="/inscritos/$id"
 			params={{ id: inscrito.id }}
-			className="flex items-center justify-between gap-3 bg-white px-4 py-3 transition-colors hover:bg-gray-50"
+			className="relative flex items-center justify-between gap-3 bg-white px-4 py-3 transition-colors hover:bg-gray-50"
+			style={nomeTurma ? { borderLeft: `3px solid ${nomeTurma.cor}` } : { borderLeft: "3px solid transparent" }}
 		>
 			<div className="flex min-w-0 items-center gap-2">
-				<div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-gray-100">
-					<User className="h-3.5 w-3.5 text-gray-500" />
+				<div
+					className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full"
+					style={nomeTurma
+						? { backgroundColor: nomeTurma.cor + "22", border: `1.5px solid ${nomeTurma.cor}55` }
+						: { backgroundColor: "#f3f4f6" }
+					}
+				>
+					<User
+						className="h-3.5 w-3.5"
+						style={{ color: nomeTurma ? nomeTurma.cor : "#6b7280" }}
+					/>
 				</div>
 				<div className="min-w-0">
 					<span className="block truncate text-sm font-medium text-gray-800">
@@ -259,10 +269,20 @@ function InscritoItem({
 							<span className="italic text-gray-400">Sem nome</span>
 						)}
 					</span>
-					<span className="flex items-center gap-1 text-xs text-gray-400 mt-0.5">
-						<GraduationCap className="h-3 w-3 shrink-0" />
-						{nomeTurma ?? <span className="italic">Sem turma</span>}
-					</span>
+					{nomeTurma ? (
+						<span
+							className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium mt-0.5"
+							style={{ backgroundColor: nomeTurma.cor + "18", color: nomeTurma.cor }}
+						>
+							<GraduationCap className="h-2.5 w-2.5 shrink-0" />
+							{nomeTurma.nome}
+						</span>
+					) : (
+						<span className="flex items-center gap-1 text-xs text-gray-300 mt-0.5 italic">
+							<GraduationCap className="h-2.5 w-2.5 shrink-0" />
+							Sem turma
+						</span>
+					)}
 				</div>
 			</div>
 			<span className="shrink-0 text-xs font-semibold text-gray-500">
