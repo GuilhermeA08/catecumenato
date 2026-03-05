@@ -1,8 +1,9 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { User, Users } from "lucide-react";
+import { GraduationCap, User, Users } from "lucide-react";
 import { useMemo } from "react";
 import { PageContainer } from "../../components/layout/PageContainer";
 import { useInscricoesStore } from "../../stores/inscricoesStore";
+import { useTurmasStore } from "../../stores/turmasStore";
 import type { Inscricao } from "../../types/inscricao";
 import { calcularIdade } from "../../utils/mascaras";
 
@@ -78,6 +79,13 @@ function pertenceFaixa(idade: number, faixa: Faixa): boolean {
 
 function IdadesPage() {
 	const { inscricoes } = useInscricoesStore();
+	const { turmas } = useTurmasStore();
+
+	const turmaById = useMemo(() => {
+		const map = new Map<string, string>();
+		for (const t of turmas) map.set(t.id, t.nome);
+		return map;
+	}, [turmas]);
 
 	const { grupos, semData } = useMemo(() => {
 		const comIdade = inscricoes.map((i) => ({
@@ -183,6 +191,7 @@ function IdadesPage() {
 										key={inscrito.id}
 										inscrito={inscrito}
 										idade={inscrito.idade as number}
+										nomeTurma={inscrito.turmaId ? (turmaById.get(inscrito.turmaId) ?? null) : null}
 									/>
 								))}
 							</div>
@@ -214,6 +223,7 @@ function IdadesPage() {
 									key={inscrito.id}
 									inscrito={inscrito}
 									idade={null}
+									nomeTurma={inscrito.turmaId ? (turmaById.get(inscrito.turmaId) ?? null) : null}
 								/>
 							))}
 						</div>
@@ -227,9 +237,11 @@ function IdadesPage() {
 function InscritoItem({
 	inscrito,
 	idade,
+	nomeTurma,
 }: {
 	inscrito: Inscricao;
 	idade: number | null;
+	nomeTurma: string | null;
 }) {
 	return (
 		<Link
@@ -241,11 +253,17 @@ function InscritoItem({
 				<div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-gray-100">
 					<User className="h-3.5 w-3.5 text-gray-500" />
 				</div>
-				<span className="truncate text-sm font-medium text-gray-800">
-					{inscrito.crismando.nome ?? (
-						<span className="italic text-gray-400">Sem nome</span>
-					)}
-				</span>
+				<div className="min-w-0">
+					<span className="block truncate text-sm font-medium text-gray-800">
+						{inscrito.crismando.nome ?? (
+							<span className="italic text-gray-400">Sem nome</span>
+						)}
+					</span>
+					<span className="flex items-center gap-1 text-xs text-gray-400 mt-0.5">
+						<GraduationCap className="h-3 w-3 shrink-0" />
+						{nomeTurma ?? <span className="italic">Sem turma</span>}
+					</span>
+				</div>
 			</div>
 			<span className="shrink-0 text-xs font-semibold text-gray-500">
 				{idade !== null ? `${idade} anos` : "—"}
