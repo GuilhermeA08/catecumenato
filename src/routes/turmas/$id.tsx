@@ -17,6 +17,80 @@ import { useTurmasStore } from "../../stores/turmasStore";
 import type { Inscricao } from "../../types/inscricao";
 import { calcularIdade } from "../../utils/mascaras";
 
+const FAIXAS = [
+	{ label: "Menos de 14", min: 0, max: 13 },
+	{ label: "14 – 17 anos", min: 14, max: 17 },
+	{ label: "18 – 24 anos", min: 18, max: 24 },
+	{ label: "25 – 35 anos", min: 25, max: 35 },
+	{ label: "36 – 50 anos", min: 36, max: 50 },
+	{ label: "Acima de 50", min: 51, max: 999 },
+];
+
+function FaixasEtarias({
+	membros,
+	cor,
+}: { membros: Inscricao[]; cor: string }) {
+	const grupos = useMemo(() => {
+		const semIdade = membros.filter(
+			(m) => calcularIdade(m.crismando.dataNascimento) === null,
+		).length;
+		const faixas = FAIXAS.map((f) => ({
+			...f,
+			count: membros.filter((m) => {
+				const idade = calcularIdade(m.crismando.dataNascimento);
+				return idade !== null && idade >= f.min && idade <= f.max;
+			}).length,
+		}));
+		return { faixas, semIdade };
+	}, [membros]);
+
+	const total = membros.length;
+	const comIdade = total - grupos.semIdade;
+
+	if (total === 0) return null;
+
+	return (
+		<div className="mb-6 rounded-xl border border-gray-200 bg-white">
+			<div className="border-b border-gray-100 px-5 py-4">
+				<h2 className="font-semibold text-gray-900">Distribuição por idade</h2>
+				{grupos.semIdade > 0 && (
+					<p className="text-xs text-gray-400 mt-0.5">
+						{grupos.semIdade} membro(s) sem data de nascimento
+					</p>
+				)}
+			</div>
+			<div className="p-5 space-y-3">
+				{grupos.faixas.map((f) => {
+					const pct = comIdade > 0 ? (f.count / comIdade) * 100 : 0;
+					return (
+						<div key={f.label}>
+							<div className="flex items-center justify-between mb-1">
+								<span className="text-sm text-gray-700">{f.label}</span>
+								<span className="text-sm font-semibold text-gray-900">
+									{f.count}
+									<span className="text-xs font-normal text-gray-400 ml-1">
+										{f.count > 0 ? `(${Math.round(pct)}%)` : ""}
+									</span>
+								</span>
+							</div>
+							<div className="h-2 w-full rounded-full bg-gray-100">
+								<div
+									className="h-2 rounded-full transition-all duration-500"
+									style={{
+										width: `${pct}%`,
+										backgroundColor: cor,
+										opacity: f.count === 0 ? 0 : 1,
+									}}
+								/>
+							</div>
+						</div>
+					);
+				})}
+			</div>
+		</div>
+	);
+}
+
 export const Route = createFileRoute("/turmas/$id")({
 	component: TurmaDetalhePage,
 });
@@ -269,6 +343,9 @@ function TurmaDetalhePage() {
 						</p>
 					</div>
 				</div>
+
+				{/* Distribuição por faixa etária */}
+				<FaixasEtarias membros={membros} cor={turma.cor} />
 
 				{/* Membros */}
 				<div className="rounded-xl border border-gray-200 bg-white">
