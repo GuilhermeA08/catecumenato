@@ -249,7 +249,14 @@ function TurmaDetalhePage() {
 	const turma = getTurma(id);
 
 	const membros = useMemo(
-		() => inscricoes.filter((i) => i.turmaId === id),
+		() =>
+			inscricoes
+				.filter((i) => i.turmaId === id)
+				.sort((a, b) => {
+					const nomeA = a.crismando.nome ?? "";
+					const nomeB = b.crismando.nome ?? "";
+					return nomeA.localeCompare(nomeB, "pt-BR", { sensitivity: "base" });
+				}),
 		[inscricoes, id],
 	);
 

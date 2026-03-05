@@ -5,6 +5,7 @@ import {
 	Check,
 	Copy,
 	Edit3,
+	GraduationCap,
 	Save,
 	Trash2,
 	X,
@@ -21,6 +22,7 @@ import { ProgressBar } from "../../components/ui/ProgressBar";
 import { Select } from "../../components/ui/Select";
 import { CAMPOS_OBRIGATORIOS } from "../../constants/camposObrigatorios";
 import { useInscricoesStore } from "../../stores/inscricoesStore";
+import { useTurmasStore } from "../../stores/turmasStore";
 import { EstadoCivil, Sexo, Status } from "../../types/enums";
 import type {
 	ControleAdministrativo,
@@ -64,8 +66,10 @@ function InscritoPage() {
 		atualizarInscricao,
 		alterarStatus,
 		excluirInscricao,
+		vincularTurma,
 		carregado,
 	} = useInscricoesStore();
+	const { turmas } = useTurmasStore();
 	const [editando, setEditando] = useState(false);
 	const [copiouTudo, setCopiouTudo] = useState(false);
 
@@ -128,6 +132,35 @@ function InscritoPage() {
 								: ""}
 							{inscricao.crismando.celular ?? ""}
 						</p>
+
+						{/* Seletor de turma */}
+						<div className="mt-3 flex items-center gap-2">
+							<GraduationCap className="h-4 w-4 shrink-0 text-gray-400" />
+							<select
+								value={inscricao.turmaId ?? ""}
+								onChange={(e) =>
+									vincularTurma(id, e.target.value || null)
+								}
+								className="rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-sm text-gray-700 shadow-sm transition-colors hover:border-gray-300 focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-100"
+							>
+								<option value="">Sem turma</option>
+								{turmas.map((t) => (
+									<option key={t.id} value={t.id}>
+										{t.nome}
+									</option>
+								))}
+							</select>
+							{inscricao.turmaId && (() => {
+								const t = turmas.find(t => t.id === inscricao.turmaId);
+								return t ? (
+									<span
+										className="h-3 w-3 rounded-full shrink-0"
+										style={{ backgroundColor: t.cor }}
+									/>
+								) : null;
+							})()}
+						</div>
+
 						<div className="mt-3">
 							<ProgressBar value={inscricao.completude} />
 						</div>
