@@ -1,9 +1,10 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Edit2, GraduationCap, Plus, Trash2, Users } from "lucide-react";
+import { Edit2, FileDown, GraduationCap, Plus, Trash2, Users } from "lucide-react";
 import { useState } from "react";
 import { PageContainer } from "../../components/layout/PageContainer";
 import { Button } from "../../components/ui/Button";
 import { Input } from "../../components/ui/Input";
+import { exportarTodasTurmasPDF } from "../../features/inscricoes/services/pdfService";
 import { useInscricoesStore } from "../../stores/inscricoesStore";
 import { useTurmasStore } from "../../stores/turmasStore";
 
@@ -234,16 +235,31 @@ function TurmasPage() {
 		return inscricoes.filter((i) => i.turmaId === turmaId).length;
 	}
 
+	const temMembros = turmas.some((t) => inscricoes.some((i) => i.turmaId === t.id));
+
 	return (
 		<>
 			<PageContainer
 				title="Turmas"
 				description="Crie turmas e organize os inscritos por grupos"
 				actions={
-					<Button onClick={abrirNova} size="sm">
-						<Plus className="h-4 w-4" />
-						Nova turma
-					</Button>
+					<div className="flex items-center gap-2">
+						{temMembros && (
+							<Button
+								variant="secondary"
+								size="sm"
+								onClick={() => exportarTodasTurmasPDF(turmas, inscricoes)}
+								title="Exportar todas as turmas em PDF"
+							>
+								<FileDown className="h-4 w-4" />
+								Exportar todas
+							</Button>
+						)}
+						<Button onClick={abrirNova} size="sm">
+							<Plus className="h-4 w-4" />
+							Nova turma
+						</Button>
+					</div>
 				}
 			>
 				{turmas.length === 0 ? (
