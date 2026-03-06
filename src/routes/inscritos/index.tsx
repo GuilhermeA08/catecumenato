@@ -49,7 +49,7 @@ function InscritosPage() {
 	return (
 		<PageContainer
 			title="Inscritos"
-			description={`${inscricoes.length} inscrição${inscricoes.length !== 1 ? "ões" : ""} no total`}
+			description={`${inscricoes.length} ${inscricoes.length !== 1 ? "inscrições" : "inscrição"} no total`}
 			actions={
 				<Link to="/inscritos/novo">
 					<Button size="sm">

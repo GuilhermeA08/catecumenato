@@ -18,13 +18,19 @@ export function CSVUploader() {
 		erros: string[];
 	} | null>(null);
 	const setInscricoes = useInscricoesStore((s) => s.setInscricoes);
-	const { turmas, criarTurma } = useTurmasStore();
+	const { criarTurma } = useTurmasStore();
 
 	function resolverTurma(nome: string): string {
-		const existente = turmas.find(
-			(t) => t.nome.trim().toLowerCase() === nome.trim().toLowerCase(),
+		const nomeNorm = nome.trim().toLowerCase();
+
+		// 1. Busca no estado ATUAL do store (estado fresco, não o closure)
+		const turmasAtuais = useTurmasStore.getState().turmas;
+		const existente = turmasAtuais.find(
+			(t) => t.nome.trim().toLowerCase() === nomeNorm,
 		);
 		if (existente) return existente.id;
+
+		// 2. Cria nova turma e retorna o id
 		return criarTurma({ nome: nome.trim() });
 	}
 

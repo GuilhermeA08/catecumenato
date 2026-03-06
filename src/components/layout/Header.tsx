@@ -10,6 +10,7 @@ import {
 	Users,
 } from "lucide-react";
 import { useInscricoesStore } from "../../stores/inscricoesStore";
+import { useTurmasStore } from "../../stores/turmasStore";
 import { Button } from "../ui/Button";
 
 interface NavLinkProps {
@@ -33,6 +34,7 @@ function NavLink({ to, icon, label }: NavLinkProps) {
 
 export function Header() {
 	const { carregado, getTotais, exportar, limpar } = useInscricoesStore();
+	const { limpar: limparTurmas } = useTurmasStore();
 	const totais = getTotais();
 
 	function handleLimpar() {
@@ -42,6 +44,7 @@ export function Header() {
 			)
 		) {
 			limpar();
+			limparTurmas();
 		}
 	}
 

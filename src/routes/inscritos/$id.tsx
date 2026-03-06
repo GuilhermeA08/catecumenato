@@ -3,6 +3,7 @@ import {
 	AlertTriangle,
 	ArrowLeft,
 	Check,
+	ClipboardList,
 	Copy,
 	Edit3,
 	GraduationCap,
@@ -72,6 +73,7 @@ function InscritoPage() {
 	const { turmas } = useTurmasStore();
 	const [editando, setEditando] = useState(false);
 	const [copiouTudo, setCopiouTudo] = useState(false);
+	const [cobrarCopiado, setCobrarCopiado] = useState(false);
 
 	const inscricao = getById(id);
 
@@ -102,13 +104,30 @@ function InscritoPage() {
 		setTimeout(() => setCopiouTudo(false), 2000);
 	}
 
+	async function handleCobrarDados() {
+		if (!inscricao || inscricao.camposFaltantes.length === 0) return;
+		const nome = inscricao.crismando.nome?.split(" ")[0] ?? "olá";
+		const campos = inscricao.camposFaltantes
+			.map((c) => `  • ${c}`)
+			.join("\n");
+		const mensagem =
+			`Olá, ${nome}! 🙏` +
+			`\n\nPara completar sua inscrição na Crisma, ainda precisamos das seguintes informações:\n\n` +
+			campos +
+			`\n\nPor favor, nos envie assim que possível. Obrigado! 🙏`;
+		await copiarParaClipboard(mensagem);
+		setCobrarCopiado(true);
+		setTimeout(() => setCobrarCopiado(false), 2500);
+	}
+
 	return (
 		<PageContainer>
 			{/* Navegação */}
 			<div className="mb-5">
 				<Link
 					to="/inscritos"
-					className="flex items-center gap-1.5 text-sm font-medium text-gray-700 hover:text-gray-900"
+					className="flex items-center gap-1.5 text-sm font-medium"
+					style={{ color: "#374151" }}
 				>
 					<ArrowLeft className="h-4 w-4" />
 					Voltar para lista
@@ -195,6 +214,20 @@ function InscritoPage() {
 							<Trash2 className="h-4 w-4" />
 						</Button>{" "}
 						<WhatsAppButton inscricao={inscricao} />
+						{inscricao.camposFaltantes.length > 0 && (
+							<Button
+								variant="secondary"
+								onClick={handleCobrarDados}
+								title="Copiar mensagem cobrando os dados faltantes"
+							>
+								{cobrarCopiado ? (
+									<Check className="h-4 w-4 text-green-600" />
+								) : (
+									<ClipboardList className="h-4 w-4" />
+								)}
+								{cobrarCopiado ? "Copiado!" : "Cobrar dados"}
+							</Button>
+						)}
 						<Button variant="secondary" onClick={handleCopiarTudo}>
 							{copiouTudo ? (
 								<Check className="h-4 w-4 text-green-600" />

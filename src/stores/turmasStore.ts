@@ -27,6 +27,7 @@ interface TurmasState {
 		dados: Partial<Pick<Turma, "nome" | "descricao" | "cor">>,
 	) => void;
 	excluirTurma: (id: string) => void;
+	limpar: () => void;
 
 	// Getters
 	getById: (id: string) => Turma | undefined;
@@ -63,6 +64,10 @@ export const useTurmasStore = create<TurmasState>()(
 				set((state) => ({
 					turmas: state.turmas.filter((t) => t.id !== id),
 				}));
+			},
+
+			limpar: () => {
+				set({ turmas: [] });
 			},
 
 			getById: (id) => get().turmas.find((t) => t.id === id),
