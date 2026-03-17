@@ -101,13 +101,18 @@ function InscritoRow({
 	labelAcao,
 	corAcao,
 	onAcao,
+	mostrarSelectTurma,
 }: {
 	inscricao: Inscricao;
 	acao: "remover" | "adicionar";
 	labelAcao: string;
 	corAcao: string;
 	onAcao: (id: string) => void;
+	mostrarSelectTurma?: boolean;
 }) {
+	const { turmas } = useTurmasStore();
+	const { vincularTurma } = useInscricoesStore();
+
 	const nome = inscricao.crismando.nome ?? "(sem nome)";
 	const idade = calcularIdade(inscricao.crismando.dataNascimento);
 	const dia = inscricao.crismando.diaEncontro;
@@ -126,19 +131,36 @@ function InscritoRow({
 				<p className="font-medium text-gray-900">{nome}</p>
 				{info && <p className="text-xs text-gray-400">{info}</p>}
 			</div>
-			<button
-				type="button"
-				onClick={() => onAcao(inscricao.id)}
-				className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${corAcao}`}
-				title={labelAcao}
-			>
-				{acao === "remover" ? (
-					<UserMinus className="h-3.5 w-3.5" />
-				) : (
-					<UserPlus className="h-3.5 w-3.5" />
+			<div className="flex items-center gap-2">
+				{mostrarSelectTurma && (
+					<select
+						value={inscricao.turmaId || ""}
+						onChange={(e) => vincularTurma(inscricao.id, e.target.value || null)}
+						className="rounded-lg border border-gray-200 bg-white px-2 py-1.5 text-xs text-gray-700 outline-none hover:border-gray-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+						title="Trocar de turma"
+					>
+						<option value="">Sem turma</option>
+						{turmas.map((t) => (
+							<option key={t.id} value={t.id}>
+								{t.nome}
+							</option>
+						))}
+					</select>
 				)}
-				{labelAcao}
-			</button>
+				<button
+					type="button"
+					onClick={() => onAcao(inscricao.id)}
+					className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${corAcao}`}
+					title={labelAcao}
+				>
+					{acao === "remover" ? (
+						<UserMinus className="h-3.5 w-3.5" />
+					) : (
+						<UserPlus className="h-3.5 w-3.5" />
+					)}
+					{labelAcao}
+				</button>
+			</div>
 		</div>
 	);
 }
@@ -418,6 +440,7 @@ function TurmaDetalhePage() {
 									labelAcao="Remover"
 									corAcao="bg-red-50 text-red-600 hover:bg-red-100"
 									onAcao={(inscritoId) => vincularTurma(inscritoId, null)}
+									mostrarSelectTurma
 								/>
 							))
 						)}
