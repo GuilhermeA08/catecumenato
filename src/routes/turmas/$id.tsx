@@ -1,21 +1,36 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import {
 	ArrowLeft,
+	CalendarDays,
+	ChevronDown,
+	ChevronUp,
+	ClipboardCheck,
 	FileDown,
 	GraduationCap,
+	PlusCircle,
 	Search,
+	Trash2,
 	UserMinus,
 	UserPlus,
 	X,
 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useId, useMemo, useState } from "react";
+import { PresencaBadge } from "../../components/encontro/PresencaBadge";
 import { PageContainer } from "../../components/layout/PageContainer";
 import { Button } from "../../components/ui/Button";
 import { exportarTurmaPDF } from "../../features/inscricoes/services/pdfService";
+import { useEncontrosStore } from "../../stores/encontrosStore";
 import { useInscricoesStore } from "../../stores/inscricoesStore";
+import { usePresencasStore } from "../../stores/presencasStore";
 import { useTurmasStore } from "../../stores/turmasStore";
+import type { EncontroFormData } from "../../types/encontro";
+import { StatusPresenca } from "../../types/enums";
 import type { Inscricao } from "../../types/inscricao";
 import { calcularIdade } from "../../utils/mascaras";
+import {
+	calcularPercentualFrequencia,
+	resumirStatusPresencas,
+} from "../../utils/presenca";
 
 const FAIXAS = [
 	{ label: "Menos de 14", min: 0, max: 13 },
@@ -26,10 +41,32 @@ const FAIXAS = [
 	{ label: "Acima de 50", min: 51, max: 999 },
 ];
 
+const OPCOES_STATUS_PRESENCA: Array<{
+	value: StatusPresenca;
+	label: string;
+}> = [
+	{ value: StatusPresenca.PENDENTE, label: "Pendente" },
+	{ value: StatusPresenca.PRESENTE, label: "Presente" },
+	{ value: StatusPresenca.AUSENTE, label: "Ausente" },
+	{ value: StatusPresenca.FALTA_JUSTIFICADA, label: "Falta justificada" },
+];
+
+function formatarDataPtBr(dataIso: string): string {
+	const data = new Date(`${dataIso}T00:00:00`);
+	return data.toLocaleDateString("pt-BR", {
+		day: "2-digit",
+		month: "2-digit",
+		year: "numeric",
+	});
+}
+
 function FaixasEtarias({
 	membros,
 	cor,
-}: { membros: Inscricao[]; cor: string }) {
+}: {
+	membros: Inscricao[];
+	cor: string;
+}) {
 	const grupos = useMemo(() => {
 		const semIdade = membros.filter(
 			(m) => calcularIdade(m.crismando.dataNascimento) === null,
@@ -102,6 +139,7 @@ function InscritoRow({
 	corAcao,
 	onAcao,
 	mostrarSelectTurma,
+	linhaClicavel,
 }: {
 	inscricao: Inscricao;
 	acao: "remover" | "adicionar";
@@ -109,7 +147,9 @@ function InscritoRow({
 	corAcao: string;
 	onAcao: (id: string) => void;
 	mostrarSelectTurma?: boolean;
+	linhaClicavel?: boolean;
 }) {
+	const navigate = Route.useNavigate();
 	const { turmas } = useTurmasStore();
 	const { vincularTurma } = useInscricoesStore();
 
@@ -127,15 +167,31 @@ function InscritoRow({
 
 	return (
 		<div className="flex items-center justify-between gap-3 rounded-lg px-3 py-2.5 transition-colors hover:bg-gray-50">
-			<div>
-				<p className="font-medium text-gray-900">{nome}</p>
-				{info && <p className="text-xs text-gray-400">{info}</p>}
-			</div>
+			{linhaClicavel ? (
+				<button
+					type="button"
+					onClick={() =>
+						navigate({ to: "/inscritos/$id", params: { id: inscricao.id } })
+					}
+					className="min-w-0 flex-1 text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+					aria-label={`Abrir ficha de ${nome}`}
+				>
+					<p className="font-medium text-gray-900">{nome}</p>
+					{info && <p className="text-xs text-gray-400">{info}</p>}
+				</button>
+			) : (
+				<div className="min-w-0 flex-1">
+					<p className="font-medium text-gray-900">{nome}</p>
+					{info && <p className="text-xs text-gray-400">{info}</p>}
+				</div>
+			)}
 			<div className="flex items-center gap-2">
 				{mostrarSelectTurma && (
 					<select
 						value={inscricao.turmaId || ""}
-						onChange={(e) => vincularTurma(inscricao.id, e.target.value || null)}
+						onChange={(e) =>
+							vincularTurma(inscricao.id, e.target.value || null)
+						}
 						className="rounded-lg border border-gray-200 bg-white px-2 py-1.5 text-xs text-gray-700 outline-none hover:border-gray-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
 						title="Trocar de turma"
 					>
@@ -264,9 +320,32 @@ function TurmaDetalhePage() {
 	const { id } = Route.useParams();
 	const { getById: getTurma } = useTurmasStore();
 	const { inscricoes, vincularTurma } = useInscricoesStore();
+	const { encontros, criarEncontro, excluirEncontro } = useEncontrosStore();
+	const { getByEncontro, definirStatus, getByInscrito } = usePresencasStore();
 
 	const [mostrarModal, setMostrarModal] = useState(false);
 	const [busca, setBusca] = useState("");
+	const [mostrarModalEncontro, setMostrarModalEncontro] = useState(false);
+	const encontroDataId = useId();
+	const encontroInicioId = useId();
+	const encontroFimId = useId();
+	const encontroLocalId = useId();
+	const encontroObsId = useId();
+	const [encontroExpandidoId, setEncontroExpandidoId] = useState<string | null>(
+		null,
+	);
+	const [formEncontro, setFormEncontro] = useState<
+		Pick<
+			EncontroFormData,
+			"dataEncontro" | "horarioInicio" | "horarioFim" | "local" | "observacoes"
+		>
+	>({
+		dataEncontro: "",
+		horarioInicio: "",
+		horarioFim: null,
+		local: null,
+		observacoes: null,
+	});
 
 	const turma = getTurma(id);
 
@@ -294,6 +373,56 @@ function TurmaDetalhePage() {
 			(i.crismando.nome ?? "").toLowerCase().includes(q),
 		);
 	}, [membros, busca]);
+
+	const encontrosDaTurma = useMemo(
+		() =>
+			encontros
+				.filter((e) => e.turmaId === id)
+				.sort((a, b) => {
+					const aKey = `${a.dataEncontro} ${a.horarioInicio}`;
+					const bKey = `${b.dataEncontro} ${b.horarioInicio}`;
+					return bKey.localeCompare(aKey, "pt-BR", { sensitivity: "base" });
+				}),
+		[encontros, id],
+	);
+
+	const frequenciaPorMembro = useMemo(() => {
+		return membros.map((membro) => {
+			const presencasDoMembro = getByInscrito(membro.id).filter((p) =>
+				encontrosDaTurma.some((e) => e.id === p.encontroId),
+			);
+			const percentual = calcularPercentualFrequencia(presencasDoMembro, true);
+			const resumo = resumirStatusPresencas(presencasDoMembro);
+
+			return {
+				inscrito: membro,
+				percentual,
+				resumo,
+			};
+		});
+	}, [membros, getByInscrito, encontrosDaTurma]);
+
+	function handleCriarEncontro() {
+		if (!formEncontro.dataEncontro || !formEncontro.horarioInicio) return;
+
+		criarEncontro({
+			turmaId: id,
+			dataEncontro: formEncontro.dataEncontro,
+			horarioInicio: formEncontro.horarioInicio,
+			horarioFim: formEncontro.horarioFim,
+			local: formEncontro.local,
+			observacoes: formEncontro.observacoes,
+		});
+
+		setFormEncontro({
+			dataEncontro: "",
+			horarioInicio: "",
+			horarioFim: null,
+			local: null,
+			observacoes: null,
+		});
+		setMostrarModalEncontro(false);
+	}
 
 	if (!turma) {
 		return (
@@ -441,8 +570,209 @@ function TurmaDetalhePage() {
 									corAcao="bg-red-50 text-red-600 hover:bg-red-100"
 									onAcao={(inscritoId) => vincularTurma(inscritoId, null)}
 									mostrarSelectTurma
+									linhaClicavel
 								/>
 							))
+						)}
+					</div>
+				</div>
+
+				{/* Encontros */}
+				<div className="mt-6 rounded-xl border border-gray-200 bg-white">
+					<div className="flex items-center justify-between border-b border-gray-100 px-5 py-4">
+						<div>
+							<h2 className="font-semibold text-gray-900">
+								Encontros da turma
+							</h2>
+							<p className="text-xs text-gray-500 mt-0.5">
+								Crie encontros e registre presenca dos membros
+							</p>
+						</div>
+						<Button size="sm" onClick={() => setMostrarModalEncontro(true)}>
+							<PlusCircle className="h-4 w-4" />
+							Novo encontro
+						</Button>
+					</div>
+
+					<div className="p-2">
+						{encontrosDaTurma.length === 0 ? (
+							<div className="py-10 text-center">
+								<CalendarDays className="mx-auto mb-3 h-10 w-10 text-gray-200" />
+								<p className="text-sm text-gray-400">
+									Nenhum encontro cadastrado para esta turma
+								</p>
+							</div>
+						) : (
+							encontrosDaTurma.map((encontro) => {
+								const presencasDoEncontro = getByEncontro(encontro.id);
+								const resumo = resumirStatusPresencas(presencasDoEncontro);
+								const chamadaAberta = encontroExpandidoId === encontro.id;
+
+								return (
+									<div
+										key={encontro.id}
+										className="mb-2 overflow-hidden rounded-xl border border-gray-100"
+									>
+										<div className="flex items-center justify-between gap-3 px-4 py-3 bg-gray-50">
+											<div>
+												<p className="font-medium text-gray-900">
+													{formatarDataPtBr(encontro.dataEncontro)} -{" "}
+													{encontro.horarioInicio}
+													{encontro.horarioFim
+														? ` as ${encontro.horarioFim}`
+														: ""}
+												</p>
+												<p className="text-xs text-gray-500">
+													{encontro.local || "Local nao informado"}
+												</p>
+											</div>
+											<div className="flex items-center gap-2">
+												<span className="rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700">
+													P {resumo.presente}
+												</span>
+												<span className="rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-700">
+													A {resumo.ausente}
+												</span>
+												<span className="rounded-full bg-yellow-100 px-2 py-0.5 text-xs font-medium text-yellow-700">
+													Pen {resumo.pendente}
+												</span>
+												<Button
+													variant="ghost"
+													size="sm"
+													onClick={() =>
+														setEncontroExpandidoId((atual) =>
+															atual === encontro.id ? null : encontro.id,
+														)
+													}
+												>
+													<ClipboardCheck className="h-4 w-4" />
+													Chamada
+													{chamadaAberta ? (
+														<ChevronUp className="h-4 w-4" />
+													) : (
+														<ChevronDown className="h-4 w-4" />
+													)}
+												</Button>
+												<Button
+													variant="ghost"
+													size="sm"
+													onClick={() => {
+														if (
+															confirm("Excluir este encontro e suas presencas?")
+														) {
+															excluirEncontro(encontro.id);
+														}
+													}}
+													className="text-red-500 hover:text-red-600"
+												>
+													<Trash2 className="h-4 w-4" />
+												</Button>
+											</div>
+										</div>
+
+										{chamadaAberta && (
+											<div className="border-t border-gray-100 p-3">
+												{membros.length === 0 ? (
+													<p className="text-sm text-gray-400 py-3 text-center">
+														Turma sem membros para registrar presenca
+													</p>
+												) : (
+													<div className="space-y-2">
+														{membros.map((membro) => {
+															const presencaAtual = presencasDoEncontro.find(
+																(p) => p.inscritoId === membro.id,
+															);
+															const statusAtual =
+																presencaAtual?.status ??
+																StatusPresenca.PENDENTE;
+
+															return (
+																<div
+																	key={membro.id}
+																	className="flex flex-col gap-2 rounded-lg border border-gray-100 px-3 py-2.5 sm:flex-row sm:items-center sm:justify-between"
+																>
+																	<div className="min-w-0">
+																		<p className="truncate text-sm font-medium text-gray-900">
+																			{membro.crismando.nome ?? "(sem nome)"}
+																		</p>
+																		<PresencaBadge
+																			status={statusAtual}
+																			size="sm"
+																		/>
+																	</div>
+																	<div className="flex items-center gap-2">
+																		<select
+																			value={statusAtual}
+																			onChange={(e) =>
+																				definirStatus(
+																					encontro.id,
+																					membro.id,
+																					e.target.value as StatusPresenca,
+																				)
+																			}
+																			className="rounded-lg border border-gray-200 bg-white px-2 py-1.5 text-xs text-gray-700 outline-none hover:border-gray-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+																		>
+																			{OPCOES_STATUS_PRESENCA.map((opcao) => (
+																				<option
+																					key={opcao.value}
+																					value={opcao.value}
+																				>
+																					{opcao.label}
+																				</option>
+																			))}
+																		</select>
+																	</div>
+																</div>
+															);
+														})}
+													</div>
+												)}
+											</div>
+										)}
+									</div>
+								);
+							})
+						)}
+					</div>
+				</div>
+
+				{/* Frequencia da turma */}
+				<div className="mt-6 rounded-xl border border-gray-200 bg-white">
+					<div className="border-b border-gray-100 px-5 py-4">
+						<h2 className="font-semibold text-gray-900">
+							Frequencia por membro
+						</h2>
+					</div>
+					<div className="p-3">
+						{frequenciaPorMembro.length === 0 ? (
+							<p className="py-8 text-center text-sm text-gray-400">
+								Sem membros para calcular frequencia
+							</p>
+						) : (
+							<div className="space-y-2">
+								{frequenciaPorMembro.map(({ inscrito, percentual, resumo }) => (
+									<div
+										key={inscrito.id}
+										className="flex flex-col gap-2 rounded-lg border border-gray-100 px-3 py-2.5 sm:flex-row sm:items-center sm:justify-between"
+									>
+										<div className="min-w-0">
+											<p className="truncate text-sm font-medium text-gray-900">
+												{inscrito.crismando.nome ?? "(sem nome)"}
+											</p>
+											<p className="text-xs text-gray-500">
+												{resumo.presente} presencas · {resumo.ausente} ausencias
+												· {resumo.faltaJustificada} justificadas
+											</p>
+										</div>
+										<div className="text-right">
+											<p className="text-lg font-semibold text-gray-900">
+												{percentual}%
+											</p>
+											<p className="text-xs text-gray-500">de frequencia</p>
+										</div>
+									</div>
+								))}
+							</div>
 						)}
 					</div>
 				</div>
@@ -468,6 +798,146 @@ function TurmaDetalhePage() {
 					disponíveis={disponíveis}
 					onFechar={() => setMostrarModal(false)}
 				/>
+			)}
+
+			{mostrarModalEncontro && (
+				<div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+					<div className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-xl">
+						<div className="mb-4 flex items-center justify-between">
+							<h2 className="text-lg font-semibold text-gray-900">
+								Novo encontro
+							</h2>
+							<button
+								type="button"
+								onClick={() => setMostrarModalEncontro(false)}
+								className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-700"
+							>
+								<X className="h-5 w-5" />
+							</button>
+						</div>
+
+						<div className="grid gap-3 sm:grid-cols-2">
+							<div className="sm:col-span-1">
+								<label
+									htmlFor={encontroDataId}
+									className="mb-1 block text-sm font-medium text-gray-700"
+								>
+									Data
+								</label>
+								<input
+									id={encontroDataId}
+									type="date"
+									value={formEncontro.dataEncontro}
+									onChange={(e) =>
+										setFormEncontro((atual) => ({
+											...atual,
+											dataEncontro: e.target.value,
+										}))
+									}
+									className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+								/>
+							</div>
+							<div className="sm:col-span-1">
+								<label
+									htmlFor={encontroInicioId}
+									className="mb-1 block text-sm font-medium text-gray-700"
+								>
+									Inicio
+								</label>
+								<input
+									id={encontroInicioId}
+									type="time"
+									value={formEncontro.horarioInicio}
+									onChange={(e) =>
+										setFormEncontro((atual) => ({
+											...atual,
+											horarioInicio: e.target.value,
+										}))
+									}
+									className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+								/>
+							</div>
+							<div className="sm:col-span-1">
+								<label
+									htmlFor={encontroFimId}
+									className="mb-1 block text-sm font-medium text-gray-700"
+								>
+									Fim (opcional)
+								</label>
+								<input
+									id={encontroFimId}
+									type="time"
+									value={formEncontro.horarioFim ?? ""}
+									onChange={(e) =>
+										setFormEncontro((atual) => ({
+											...atual,
+											horarioFim: e.target.value || null,
+										}))
+									}
+									className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+								/>
+							</div>
+							<div className="sm:col-span-1">
+								<label
+									htmlFor={encontroLocalId}
+									className="mb-1 block text-sm font-medium text-gray-700"
+								>
+									Local (opcional)
+								</label>
+								<input
+									id={encontroLocalId}
+									type="text"
+									value={formEncontro.local ?? ""}
+									onChange={(e) =>
+										setFormEncontro((atual) => ({
+											...atual,
+											local: e.target.value || null,
+										}))
+									}
+									placeholder="Sala, salao, capela..."
+									className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+								/>
+							</div>
+							<div className="sm:col-span-2">
+								<label
+									htmlFor={encontroObsId}
+									className="mb-1 block text-sm font-medium text-gray-700"
+								>
+									Observacoes (opcional)
+								</label>
+								<textarea
+									id={encontroObsId}
+									value={formEncontro.observacoes ?? ""}
+									onChange={(e) =>
+										setFormEncontro((atual) => ({
+											...atual,
+											observacoes: e.target.value || null,
+										}))
+									}
+									rows={3}
+									className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+								/>
+							</div>
+						</div>
+
+						<div className="mt-5 flex justify-end gap-2">
+							<Button
+								variant="secondary"
+								onClick={() => setMostrarModalEncontro(false)}
+							>
+								Cancelar
+							</Button>
+							<Button
+								onClick={handleCriarEncontro}
+								disabled={
+									!formEncontro.dataEncontro || !formEncontro.horarioInicio
+								}
+							>
+								Criar encontro
+							</Button>
+						</div>
+					</div>
+				</div>
 			)}
 		</>
 	);

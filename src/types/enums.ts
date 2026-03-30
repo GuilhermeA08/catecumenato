@@ -3,6 +3,13 @@ export enum Status {
 	PENDENTE = "pendente",
 }
 
+export enum StatusPresenca {
+	PRESENTE = "presente",
+	AUSENTE = "ausente",
+	FALTA_JUSTIFICADA = "falta_justificada",
+	PENDENTE = "pendente",
+}
+
 export enum EstadoCivil {
 	SOLTEIRO = "Solteiro(a)",
 	CASADO_RELIGIOSO_CIVIL = "Casado no Religioso e Civil",
