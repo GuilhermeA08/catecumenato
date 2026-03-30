@@ -189,8 +189,27 @@ export const useInscricoesStore = create<InscricoesState>()(
 		}),
 		{
 			name: "catecumenato-inscricoes",
-			version: 1,
+			version: 2,
 			storage: createJSONStorage(() => localStorage),
+			migrate: (persistedState, version) => {
+				const state = persistedState as Partial<InscricoesState>;
+				if (!state || !Array.isArray(state.inscricoes)) {
+					return {
+						inscricoes: [],
+						carregado: false,
+						importadoEm: null,
+					};
+				}
+
+				if (version < 2) {
+					return {
+						...state,
+						inscricoes: state.inscricoes.map((i) => recalcularInscricao(i)),
+					};
+				}
+
+				return state;
+			},
 			partialize: (state) => ({
 				inscricoes: state.inscricoes,
 				carregado: state.carregado,
