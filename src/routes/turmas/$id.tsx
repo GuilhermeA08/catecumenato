@@ -41,14 +41,26 @@ const FAIXAS = [
 	{ label: "Acima de 50", min: 51, max: 999 },
 ];
 
-const OPCOES_STATUS_PRESENCA: Array<{
+const BOTOES_STATUS_PRESENCA: Array<{
 	value: StatusPresenca;
 	label: string;
+	activeClassName: string;
 }> = [
-	{ value: StatusPresenca.PENDENTE, label: "Pendente" },
-	{ value: StatusPresenca.PRESENTE, label: "Presente" },
-	{ value: StatusPresenca.AUSENTE, label: "Ausente" },
-	{ value: StatusPresenca.FALTA_JUSTIFICADA, label: "Falta justificada" },
+	{
+		value: StatusPresenca.PRESENTE,
+		label: "Presente",
+		activeClassName: "border-green-200 bg-green-50 text-green-700",
+	},
+	{
+		value: StatusPresenca.AUSENTE,
+		label: "Ausente",
+		activeClassName: "border-red-200 bg-red-50 text-red-700",
+	},
+	{
+		value: StatusPresenca.FALTA_JUSTIFICADA,
+		label: "Justificada",
+		activeClassName: "border-yellow-200 bg-yellow-50 text-yellow-700",
+	},
 ];
 
 function formatarDataPtBr(dataIso: string): string {
@@ -321,7 +333,8 @@ function TurmaDetalhePage() {
 	const { getById: getTurma } = useTurmasStore();
 	const { inscricoes, vincularTurma } = useInscricoesStore();
 	const { encontros, criarEncontro, excluirEncontro } = useEncontrosStore();
-	const { getByEncontro, definirStatus, getByInscrito } = usePresencasStore();
+	const { getByEncontro, definirStatus, getByInscrito, registrarLote } =
+		usePresencasStore();
 
 	const [mostrarModal, setMostrarModal] = useState(false);
 	const [busca, setBusca] = useState("");
@@ -422,6 +435,16 @@ function TurmaDetalhePage() {
 			observacoes: null,
 		});
 		setMostrarModalEncontro(false);
+	}
+
+	function definirStatusTodos(encontroId: string, status: StatusPresenca) {
+		registrarLote(
+			encontroId,
+			membros.map((membro) => ({
+				inscritoId: membro.id,
+				status,
+			})),
+		);
 	}
 
 	if (!turma) {
@@ -678,6 +701,34 @@ function TurmaDetalhePage() {
 													</p>
 												) : (
 													<div className="space-y-2">
+														<div className="mb-3 flex flex-wrap items-center gap-2">
+															<Button
+																size="sm"
+																variant="secondary"
+																onClick={() =>
+																	definirStatusTodos(
+																		encontro.id,
+																		StatusPresenca.PRESENTE,
+																	)
+																}
+																className="border-green-200 text-green-700 hover:bg-green-50"
+															>
+																Dar presenca para todos
+															</Button>
+															<Button
+																size="sm"
+																variant="secondary"
+																onClick={() =>
+																	definirStatusTodos(
+																		encontro.id,
+																		StatusPresenca.AUSENTE,
+																	)
+																}
+																className="border-red-200 text-red-700 hover:bg-red-50"
+															>
+																Dar falta para todos
+															</Button>
+														</div>
 														{membros.map((membro) => {
 															const presencaAtual = presencasDoEncontro.find(
 																(p) => p.inscritoId === membro.id,
@@ -701,26 +752,32 @@ function TurmaDetalhePage() {
 																		/>
 																	</div>
 																	<div className="flex items-center gap-2">
-																		<select
-																			value={statusAtual}
-																			onChange={(e) =>
-																				definirStatus(
-																					encontro.id,
-																					membro.id,
-																					e.target.value as StatusPresenca,
-																				)
-																			}
-																			className="rounded-lg border border-gray-200 bg-white px-2 py-1.5 text-xs text-gray-700 outline-none hover:border-gray-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-																		>
-																			{OPCOES_STATUS_PRESENCA.map((opcao) => (
-																				<option
+																		{BOTOES_STATUS_PRESENCA.map((opcao) => {
+																			const ativo = statusAtual === opcao.value;
+
+																			return (
+																				<button
 																					key={opcao.value}
-																					value={opcao.value}
+																					type="button"
+																					onClick={() =>
+																						definirStatus(
+																							encontro.id,
+																							membro.id,
+																							opcao.value,
+																						)
+																					}
+																					className={`rounded-lg border px-2 py-1.5 text-xs font-medium transition-colors ${
+																						ativo
+																							? opcao.activeClassName
+																							: "border-gray-200 bg-white text-gray-700 hover:bg-gray-50"
+																					}`}
+																					aria-pressed={ativo}
+																					title={`Marcar como ${opcao.label.toLowerCase()}`}
 																				>
 																					{opcao.label}
-																				</option>
-																			))}
-																		</select>
+																				</button>
+																			);
+																		})}
 																	</div>
 																</div>
 															);
