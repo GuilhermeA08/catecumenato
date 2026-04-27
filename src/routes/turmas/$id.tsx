@@ -99,43 +99,38 @@ function FaixasEtarias({
 	if (total === 0) return null;
 
 	return (
-		<div className="mb-6 rounded-xl border border-gray-200 bg-white">
-			<div className="border-b border-gray-100 px-5 py-4">
-				<h2 className="font-semibold text-gray-900">Distribuição por idade</h2>
-				{grupos.semIdade > 0 && (
-					<p className="text-xs text-gray-400 mt-0.5">
-						{grupos.semIdade} membro(s) sem data de nascimento
-					</p>
-				)}
-			</div>
-			<div className="p-5 space-y-3">
-				{grupos.faixas.map((f) => {
-					const pct = comIdade > 0 ? (f.count / comIdade) * 100 : 0;
-					return (
-						<div key={f.label}>
-							<div className="flex items-center justify-between mb-1">
-								<span className="text-sm text-gray-700">{f.label}</span>
-								<span className="text-sm font-semibold text-gray-900">
-									{f.count}
-									<span className="text-xs font-normal text-gray-400 ml-1">
-										{f.count > 0 ? `(${Math.round(pct)}%)` : ""}
-									</span>
+		<div className="p-5 space-y-3">
+			{grupos.semIdade > 0 && (
+				<p className="text-xs text-gray-400 mt-0.5">
+					{grupos.semIdade} membro(s) sem data de nascimento
+				</p>
+			)}
+			{grupos.faixas.map((f) => {
+				const pct = comIdade > 0 ? (f.count / comIdade) * 100 : 0;
+				return (
+					<div key={f.label}>
+						<div className="flex items-center justify-between mb-1">
+							<span className="text-sm text-gray-700">{f.label}</span>
+							<span className="text-sm font-semibold text-gray-900">
+								{f.count}
+								<span className="text-xs font-normal text-gray-400 ml-1">
+									{f.count > 0 ? `(${Math.round(pct)}%)` : ""}
 								</span>
-							</div>
-							<div className="h-2 w-full rounded-full bg-gray-100">
-								<div
-									className="h-2 rounded-full transition-all duration-500"
-									style={{
-										width: `${pct}%`,
-										backgroundColor: cor,
-										opacity: f.count === 0 ? 0 : 1,
-									}}
-								/>
-							</div>
+							</span>
 						</div>
-					);
-				})}
-			</div>
+						<div className="h-2 w-full rounded-full bg-gray-100">
+							<div
+								className="h-2 rounded-full transition-all duration-500"
+								style={{
+									width: `${pct}%`,
+									backgroundColor: cor,
+									opacity: f.count === 0 ? 0 : 1,
+								}}
+							/>
+						</div>
+					</div>
+				);
+			})}
 		</div>
 	);
 }
@@ -347,6 +342,13 @@ function TurmaDetalhePage() {
 	const [encontroExpandidoId, setEncontroExpandidoId] = useState<string | null>(
 		null,
 	);
+	const [secoesExpandidas, setSecoesExpandidas] = useState({
+		info: true,
+		faixas: true,
+		membros: true,
+		encontros: true,
+		frequencia: true,
+	});
 	const [formEncontro, setFormEncontro] = useState<
 		Pick<
 			EncontroFormData,
@@ -447,6 +449,13 @@ function TurmaDetalhePage() {
 		);
 	}
 
+	function toggleSecao(secao: keyof typeof secoesExpandidas) {
+		setSecoesExpandidas((atual) => ({
+			...atual,
+			[secao]: !atual[secao],
+		}));
+	}
+
 	if (!turma) {
 		return (
 			<PageContainer title="Turma não encontrada" description="">
@@ -493,116 +502,173 @@ function TurmaDetalhePage() {
 				}
 			>
 				{/* Info da turma */}
-				<div
-					className="mb-6 flex items-center gap-4 rounded-xl p-4"
-					style={{
-						backgroundColor: turma.cor + "14",
-						border: `1.5px solid ${turma.cor}44`,
-					}}
-				>
-					<div
-						className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl"
-						style={{
-							backgroundColor: turma.cor + "22",
-							border: `2px solid ${turma.cor}`,
-						}}
+				<div className="mb-6 rounded-xl border border-gray-200 bg-white">
+					<button
+						type="button"
+						onClick={() => toggleSecao("info")}
+						className="flex w-full items-center justify-between border-b border-gray-100 px-5 py-4 text-left hover:bg-gray-50"
 					>
-						<GraduationCap className="h-6 w-6" style={{ color: turma.cor }} />
-					</div>
-					<div className="flex-1">
-						<p className="font-semibold text-gray-900">{turma.nome}</p>
-						{turma.descricao && (
-							<p className="text-sm text-gray-500">{turma.descricao}</p>
+						<h2 className="font-semibold text-gray-900">
+							Informações da turma
+						</h2>
+						{secoesExpandidas.info ? (
+							<ChevronUp className="h-5 w-5 text-gray-400" />
+						) : (
+							<ChevronDown className="h-5 w-5 text-gray-400" />
 						)}
-					</div>
-					<div className="text-right">
-						<p className="text-2xl font-bold" style={{ color: turma.cor }}>
-							{membros.length}
-						</p>
-						<p className="text-xs text-gray-500">
-							{membros.length === 1 ? "membro" : "membros"}
-						</p>
-					</div>
+					</button>
+					{secoesExpandidas.info && (
+						<div
+							className="flex items-center gap-4 p-4"
+							style={{
+								backgroundColor: turma.cor + "14",
+								border: `1.5px solid ${turma.cor}44`,
+							}}
+						>
+							<div
+								className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl"
+								style={{
+									backgroundColor: turma.cor + "22",
+									border: `2px solid ${turma.cor}`,
+								}}
+							>
+								<GraduationCap
+									className="h-6 w-6"
+									style={{ color: turma.cor }}
+								/>
+							</div>
+							<div className="flex-1">
+								<p className="font-semibold text-gray-900">{turma.nome}</p>
+								{turma.descricao && (
+									<p className="text-sm text-gray-500">{turma.descricao}</p>
+								)}
+							</div>
+							<div className="text-right">
+								<p className="text-2xl font-bold" style={{ color: turma.cor }}>
+									{membros.length}
+								</p>
+								<p className="text-xs text-gray-500">
+									{membros.length === 1 ? "membro" : "membros"}
+								</p>
+							</div>
+						</div>
+					)}
 				</div>
 
 				{/* Distribuição por faixa etária */}
-				<FaixasEtarias membros={membros} cor={turma.cor} />
+				<div className="mb-6 rounded-xl border border-gray-200 bg-white">
+					<button
+						type="button"
+						onClick={() => toggleSecao("faixas")}
+						className="flex w-full items-center justify-between border-b border-gray-100 px-5 py-4 text-left hover:bg-gray-50"
+					>
+						<h2 className="font-semibold text-gray-900">
+							Distribuição por idade
+						</h2>
+						{secoesExpandidas.faixas ? (
+							<ChevronUp className="h-5 w-5 text-gray-400" />
+						) : (
+							<ChevronDown className="h-5 w-5 text-gray-400" />
+						)}
+					</button>
+					{secoesExpandidas.faixas && (
+						<FaixasEtarias membros={membros} cor={turma.cor} />
+					)}
+				</div>
 
 				{/* Membros */}
-				<div className="rounded-xl border border-gray-200 bg-white">
-					<div className="flex items-center justify-between border-b border-gray-100 px-5 py-4">
+				<div className="mb-6 rounded-xl border border-gray-200 bg-white">
+					<button
+						type="button"
+						onClick={() => toggleSecao("membros")}
+						className="flex w-full items-center justify-between border-b border-gray-100 px-5 py-4 text-left hover:bg-gray-50"
+					>
 						<h2 className="font-semibold text-gray-900">Membros da turma</h2>
-						<div className="flex items-center gap-2">
-							{membros.length > 0 && (
-								<div className="flex items-center gap-2 rounded-lg border border-gray-200 bg-gray-50 px-3 py-1.5">
-									<Search className="h-3.5 w-3.5 flex-shrink-0 text-gray-400" />
-									<input
-										type="text"
-										value={busca}
-										onChange={(e) => setBusca(e.target.value)}
-										placeholder="Filtrar..."
-										className="w-32 bg-transparent text-sm text-gray-900 outline-none placeholder:text-gray-400"
-									/>
-								</div>
-							)}
-							<Button
-								size="sm"
-								onClick={() => setMostrarModal(true)}
-								disabled={disponíveis.length === 0}
-								title={
-									disponíveis.length === 0
-										? "Todos os inscritos já estão em turmas"
-										: undefined
-								}
-							>
-								<UserPlus className="h-4 w-4" />
-								Adicionar
-							</Button>
-						</div>
-					</div>
-
-					<div className="p-2">
-						{membros.length === 0 ? (
-							<div className="py-12 text-center">
-								<GraduationCap className="mx-auto mb-3 h-10 w-10 text-gray-200" />
-								<p className="text-sm text-gray-400">
-									Nenhum inscrito nesta turma ainda
-								</p>
-								{disponíveis.length > 0 && (
-									<Button
-										onClick={() => setMostrarModal(true)}
-										className="mt-4"
-										size="sm"
-									>
-										<UserPlus className="h-4 w-4" />
-										Adicionar inscritos
-									</Button>
-								)}
-							</div>
-						) : membrosFiltrados.length === 0 ? (
-							<p className="py-8 text-center text-sm text-gray-400">
-								Nenhum membro encontrado para "{busca}"
-							</p>
+						{secoesExpandidas.membros ? (
+							<ChevronUp className="h-5 w-5 text-gray-400" />
 						) : (
-							membrosFiltrados.map((inscricao) => (
-								<InscritoRow
-									key={inscricao.id}
-									inscricao={inscricao}
-									acao="remover"
-									labelAcao="Remover"
-									corAcao="bg-red-50 text-red-600 hover:bg-red-100"
-									onAcao={(inscritoId) => vincularTurma(inscritoId, null)}
-									mostrarSelectTurma
-									linhaClicavel
-								/>
-							))
+							<ChevronDown className="h-5 w-5 text-gray-400" />
 						)}
-					</div>
+					</button>
+					{secoesExpandidas.membros && (
+						<div className="p-2">
+							{membros.length === 0 ? (
+								<div className="py-12 text-center">
+									<GraduationCap className="mx-auto mb-3 h-10 w-10 text-gray-200" />
+									<p className="text-sm text-gray-400">
+										Nenhum inscrito nesta turma ainda
+									</p>
+									{disponíveis.length > 0 && (
+										<Button
+											onClick={() => setMostrarModal(true)}
+											className="mt-4"
+											size="sm"
+										>
+											<UserPlus className="h-4 w-4" />
+											Adicionar inscritos
+										</Button>
+									)}
+								</div>
+							) : membrosFiltrados.length === 0 ? (
+								<p className="py-8 text-center text-sm text-gray-400">
+									Nenhum membro encontrado para "{busca}"
+								</p>
+							) : (
+								<>
+									<div className="mb-4 flex items-center justify-between px-3">
+										<div className="flex items-center gap-2">
+											{membros.length > 0 && (
+												<div className="flex items-center gap-2 rounded-lg border border-gray-200 bg-gray-50 px-3 py-1.5">
+													<Search className="h-3.5 w-3.5 flex-shrink-0 text-gray-400" />
+													<input
+														type="text"
+														value={busca}
+														onChange={(e) => setBusca(e.target.value)}
+														placeholder="Filtrar..."
+														className="w-32 bg-transparent text-sm text-gray-900 outline-none placeholder:text-gray-400"
+													/>
+												</div>
+											)}
+											<Button
+												size="sm"
+												onClick={() => setMostrarModal(true)}
+												disabled={disponíveis.length === 0}
+												title={
+													disponíveis.length === 0
+														? "Todos os inscritos já estão em turmas"
+														: undefined
+												}
+											>
+												<UserPlus className="h-4 w-4" />
+												Adicionar
+											</Button>
+										</div>
+									</div>
+									{membrosFiltrados.map((inscricao) => (
+										<InscritoRow
+											key={inscricao.id}
+											inscricao={inscricao}
+											acao="remover"
+											labelAcao="Remover"
+											corAcao="bg-red-50 text-red-600 hover:bg-red-100"
+											onAcao={(inscritoId) => vincularTurma(inscritoId, null)}
+											mostrarSelectTurma
+											linhaClicavel
+										/>
+									))}
+								</>
+							)}
+						</div>
+					)}
 				</div>
 
 				{/* Encontros */}
-				<div className="mt-6 rounded-xl border border-gray-200 bg-white">
-					<div className="flex items-center justify-between border-b border-gray-100 px-5 py-4">
+				<div className="mb-6 rounded-xl border border-gray-200 bg-white">
+					<button
+						type="button"
+						onClick={() => toggleSecao("encontros")}
+						className="flex w-full items-center justify-between border-b border-gray-100 px-5 py-4 text-left hover:bg-gray-50"
+					>
 						<div>
 							<h2 className="font-semibold text-gray-900">
 								Encontros da turma
@@ -611,227 +677,251 @@ function TurmaDetalhePage() {
 								Crie encontros e registre presenca dos membros
 							</p>
 						</div>
-						<Button size="sm" onClick={() => setMostrarModalEncontro(true)}>
-							<PlusCircle className="h-4 w-4" />
-							Novo encontro
-						</Button>
-					</div>
+						<div className="flex items-center gap-2">
+							<Button size="sm" onClick={() => setMostrarModalEncontro(true)}>
+								<PlusCircle className="h-4 w-4" />
+								Novo encontro
+							</Button>
+							{secoesExpandidas.encontros ? (
+								<ChevronUp className="h-5 w-5 text-gray-400" />
+							) : (
+								<ChevronDown className="h-5 w-5 text-gray-400" />
+							)}
+						</div>
+					</button>
+					{secoesExpandidas.encontros && (
+						<div className="p-2">
+							{encontrosDaTurma.length === 0 ? (
+								<div className="py-10 text-center">
+									<CalendarDays className="mx-auto mb-3 h-10 w-10 text-gray-200" />
+									<p className="text-sm text-gray-400">
+										Nenhum encontro cadastrado para esta turma
+									</p>
+								</div>
+							) : (
+								encontrosDaTurma.map((encontro) => {
+									const presencasDoEncontro = getByEncontro(encontro.id);
+									const resumo = resumirStatusPresencas(presencasDoEncontro);
+									const chamadaAberta = encontroExpandidoId === encontro.id;
 
-					<div className="p-2">
-						{encontrosDaTurma.length === 0 ? (
-							<div className="py-10 text-center">
-								<CalendarDays className="mx-auto mb-3 h-10 w-10 text-gray-200" />
-								<p className="text-sm text-gray-400">
-									Nenhum encontro cadastrado para esta turma
-								</p>
-							</div>
-						) : (
-							encontrosDaTurma.map((encontro) => {
-								const presencasDoEncontro = getByEncontro(encontro.id);
-								const resumo = resumirStatusPresencas(presencasDoEncontro);
-								const chamadaAberta = encontroExpandidoId === encontro.id;
-
-								return (
-									<div
-										key={encontro.id}
-										className="mb-2 overflow-hidden rounded-xl border border-gray-100"
-									>
-										<div className="flex items-center justify-between gap-3 px-4 py-3 bg-gray-50">
-											<div>
-												<p className="font-medium text-gray-900">
-													{formatarDataPtBr(encontro.dataEncontro)} -{" "}
-													{encontro.horarioInicio}
-													{encontro.horarioFim
-														? ` as ${encontro.horarioFim}`
-														: ""}
-												</p>
-												<p className="text-xs text-gray-500">
-													{encontro.local || "Local nao informado"}
-												</p>
-											</div>
-											<div className="flex items-center gap-2">
-												<span className="rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700">
-													P {resumo.presente}
-												</span>
-												<span className="rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-700">
-													A {resumo.ausente}
-												</span>
-												<span className="rounded-full bg-yellow-100 px-2 py-0.5 text-xs font-medium text-yellow-700">
-													Pen {resumo.pendente}
-												</span>
-												<Button
-													variant="ghost"
-													size="sm"
-													onClick={() =>
-														setEncontroExpandidoId((atual) =>
-															atual === encontro.id ? null : encontro.id,
-														)
-													}
-												>
-													<ClipboardCheck className="h-4 w-4" />
-													Chamada
-													{chamadaAberta ? (
-														<ChevronUp className="h-4 w-4" />
-													) : (
-														<ChevronDown className="h-4 w-4" />
-													)}
-												</Button>
-												<Button
-													variant="ghost"
-													size="sm"
-													onClick={() => {
-														if (
-															confirm("Excluir este encontro e suas presencas?")
-														) {
-															excluirEncontro(encontro.id);
-														}
-													}}
-													className="text-red-500 hover:text-red-600"
-												>
-													<Trash2 className="h-4 w-4" />
-												</Button>
-											</div>
-										</div>
-
-										{chamadaAberta && (
-											<div className="border-t border-gray-100 p-3">
-												{membros.length === 0 ? (
-													<p className="text-sm text-gray-400 py-3 text-center">
-														Turma sem membros para registrar presenca
+									return (
+										<div
+											key={encontro.id}
+											className="mb-2 overflow-hidden rounded-xl border border-gray-100"
+										>
+											<div className="flex items-center justify-between gap-3 px-4 py-3 bg-gray-50">
+												<div>
+													<p className="font-medium text-gray-900">
+														{formatarDataPtBr(encontro.dataEncontro)} -{" "}
+														{encontro.horarioInicio}
+														{encontro.horarioFim
+															? ` as ${encontro.horarioFim}`
+															: ""}
 													</p>
-												) : (
-													<div className="space-y-2">
-														<div className="mb-3 flex flex-wrap items-center gap-2">
-															<Button
-																size="sm"
-																variant="secondary"
-																onClick={() =>
-																	definirStatusTodos(
-																		encontro.id,
-																		StatusPresenca.PRESENTE,
-																	)
-																}
-																className="border-green-200 text-green-700 hover:bg-green-50"
-															>
-																Dar presenca para todos
-															</Button>
-															<Button
-																size="sm"
-																variant="secondary"
-																onClick={() =>
-																	definirStatusTodos(
-																		encontro.id,
-																		StatusPresenca.AUSENTE,
-																	)
-																}
-																className="border-red-200 text-red-700 hover:bg-red-50"
-															>
-																Dar falta para todos
-															</Button>
-														</div>
-														{membros.map((membro) => {
-															const presencaAtual = presencasDoEncontro.find(
-																(p) => p.inscritoId === membro.id,
-															);
-															const statusAtual =
-																presencaAtual?.status ??
-																StatusPresenca.PENDENTE;
-
-															return (
-																<div
-																	key={membro.id}
-																	className="flex flex-col gap-2 rounded-lg border border-gray-100 px-3 py-2.5 sm:flex-row sm:items-center sm:justify-between"
-																>
-																	<div className="min-w-0">
-																		<p className="truncate text-sm font-medium text-gray-900">
-																			{membro.crismando.nome ?? "(sem nome)"}
-																		</p>
-																		<PresencaBadge
-																			status={statusAtual}
-																			size="sm"
-																		/>
-																	</div>
-																	<div className="flex items-center gap-2">
-																		{BOTOES_STATUS_PRESENCA.map((opcao) => {
-																			const ativo = statusAtual === opcao.value;
-
-																			return (
-																				<button
-																					key={opcao.value}
-																					type="button"
-																					onClick={() =>
-																						definirStatus(
-																							encontro.id,
-																							membro.id,
-																							opcao.value,
-																						)
-																					}
-																					className={`rounded-lg border px-2 py-1.5 text-xs font-medium transition-colors ${
-																						ativo
-																							? opcao.activeClassName
-																							: "border-gray-200 bg-white text-gray-700 hover:bg-gray-50"
-																					}`}
-																					aria-pressed={ativo}
-																					title={`Marcar como ${opcao.label.toLowerCase()}`}
-																				>
-																					{opcao.label}
-																				</button>
-																			);
-																		})}
-																	</div>
-																</div>
-															);
-														})}
-													</div>
-												)}
+													<p className="text-xs text-gray-500">
+														{encontro.local || "Local nao informado"}
+													</p>
+												</div>
+												<div className="flex items-center gap-2">
+													<span className="rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700">
+														P {resumo.presente}
+													</span>
+													<span className="rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-700">
+														A {resumo.ausente}
+													</span>
+													<span className="rounded-full bg-yellow-100 px-2 py-0.5 text-xs font-medium text-yellow-700">
+														Pen {resumo.pendente}
+													</span>
+													<Button
+														variant="ghost"
+														size="sm"
+														onClick={() =>
+															setEncontroExpandidoId((atual) =>
+																atual === encontro.id ? null : encontro.id,
+															)
+														}
+													>
+														<ClipboardCheck className="h-4 w-4" />
+														Chamada
+														{chamadaAberta ? (
+															<ChevronUp className="h-4 w-4" />
+														) : (
+															<ChevronDown className="h-4 w-4" />
+														)}
+													</Button>
+													<Button
+														variant="ghost"
+														size="sm"
+														onClick={() => {
+															if (
+																confirm(
+																	"Excluir este encontro e suas presencas?",
+																)
+															) {
+																excluirEncontro(encontro.id);
+															}
+														}}
+														className="text-red-500 hover:text-red-600"
+													>
+														<Trash2 className="h-4 w-4" />
+													</Button>
+												</div>
 											</div>
-										)}
-									</div>
-								);
-							})
-						)}
-					</div>
+
+											{chamadaAberta && (
+												<div className="border-t border-gray-100 p-3">
+													{membros.length === 0 ? (
+														<p className="text-sm text-gray-400 py-3 text-center">
+															Turma sem membros para registrar presenca
+														</p>
+													) : (
+														<div className="space-y-2">
+															<div className="mb-3 flex flex-wrap items-center gap-2">
+																<Button
+																	size="sm"
+																	variant="secondary"
+																	onClick={() =>
+																		definirStatusTodos(
+																			encontro.id,
+																			StatusPresenca.PRESENTE,
+																		)
+																	}
+																	className="border-green-200 text-green-700 hover:bg-green-50"
+																>
+																	Dar presenca para todos
+																</Button>
+																<Button
+																	size="sm"
+																	variant="secondary"
+																	onClick={() =>
+																		definirStatusTodos(
+																			encontro.id,
+																			StatusPresenca.AUSENTE,
+																		)
+																	}
+																	className="border-red-200 text-red-700 hover:bg-red-50"
+																>
+																	Dar falta para todos
+																</Button>
+															</div>
+															{membros.map((membro) => {
+																const presencaAtual = presencasDoEncontro.find(
+																	(p) => p.inscritoId === membro.id,
+																);
+																const statusAtual =
+																	presencaAtual?.status ??
+																	StatusPresenca.PENDENTE;
+
+																return (
+																	<div
+																		key={membro.id}
+																		className="flex flex-col gap-2 rounded-lg border border-gray-100 px-3 py-2.5 sm:flex-row sm:items-center sm:justify-between"
+																	>
+																		<div className="min-w-0">
+																			<p className="truncate text-sm font-medium text-gray-900">
+																				{membro.crismando.nome ?? "(sem nome)"}
+																			</p>
+																			<PresencaBadge
+																				status={statusAtual}
+																				size="sm"
+																			/>
+																		</div>
+																		<div className="flex items-center gap-2">
+																			{BOTOES_STATUS_PRESENCA.map((opcao) => {
+																				const ativo =
+																					statusAtual === opcao.value;
+
+																				return (
+																					<button
+																						key={opcao.value}
+																						type="button"
+																						onClick={() =>
+																							definirStatus(
+																								encontro.id,
+																								membro.id,
+																								opcao.value,
+																							)
+																						}
+																						className={`rounded-lg border px-2 py-1.5 text-xs font-medium transition-colors ${
+																							ativo
+																								? opcao.activeClassName
+																								: "border-gray-200 bg-white text-gray-700 hover:bg-gray-50"
+																						}`}
+																						aria-pressed={ativo}
+																						title={`Marcar como ${opcao.label.toLowerCase()}`}
+																					>
+																						{opcao.label}
+																					</button>
+																				);
+																			})}
+																		</div>
+																	</div>
+																);
+															})}
+														</div>
+													)}
+												</div>
+											)}
+										</div>
+									);
+								})
+							)}
+						</div>
+					)}
 				</div>
 
 				{/* Frequencia da turma */}
-				<div className="mt-6 rounded-xl border border-gray-200 bg-white">
-					<div className="border-b border-gray-100 px-5 py-4">
+				<div className="mb-6 rounded-xl border border-gray-200 bg-white">
+					<button
+						type="button"
+						onClick={() => toggleSecao("frequencia")}
+						className="flex w-full items-center justify-between border-b border-gray-100 px-5 py-4 text-left hover:bg-gray-50"
+					>
 						<h2 className="font-semibold text-gray-900">
 							Frequencia por membro
 						</h2>
-					</div>
-					<div className="p-3">
-						{frequenciaPorMembro.length === 0 ? (
-							<p className="py-8 text-center text-sm text-gray-400">
-								Sem membros para calcular frequencia
-							</p>
+						{secoesExpandidas.frequencia ? (
+							<ChevronUp className="h-5 w-5 text-gray-400" />
 						) : (
-							<div className="space-y-2">
-								{frequenciaPorMembro.map(({ inscrito, percentual, resumo }) => (
-									<div
-										key={inscrito.id}
-										className="flex flex-col gap-2 rounded-lg border border-gray-100 px-3 py-2.5 sm:flex-row sm:items-center sm:justify-between"
-									>
-										<div className="min-w-0">
-											<p className="truncate text-sm font-medium text-gray-900">
-												{inscrito.crismando.nome ?? "(sem nome)"}
-											</p>
-											<p className="text-xs text-gray-500">
-												{resumo.presente} presencas · {resumo.ausente} ausencias
-												· {resumo.faltaJustificada} justificadas
-											</p>
-										</div>
-										<div className="text-right">
-											<p className="text-lg font-semibold text-gray-900">
-												{percentual}%
-											</p>
-											<p className="text-xs text-gray-500">de frequencia</p>
-										</div>
-									</div>
-								))}
-							</div>
+							<ChevronDown className="h-5 w-5 text-gray-400" />
 						)}
-					</div>
+					</button>
+					{secoesExpandidas.frequencia && (
+						<div className="p-3">
+							{frequenciaPorMembro.length === 0 ? (
+								<p className="py-8 text-center text-sm text-gray-400">
+									Sem membros para calcular frequencia
+								</p>
+							) : (
+								<div className="space-y-2">
+									{frequenciaPorMembro.map(
+										({ inscrito, percentual, resumo }) => (
+											<div
+												key={inscrito.id}
+												className="flex flex-col gap-2 rounded-lg border border-gray-100 px-3 py-2.5 sm:flex-row sm:items-center sm:justify-between"
+											>
+												<div className="min-w-0">
+													<p className="truncate text-sm font-medium text-gray-900">
+														{inscrito.crismando.nome ?? "(sem nome)"}
+													</p>
+													<p className="text-xs text-gray-500">
+														{resumo.presente} presencas · {resumo.ausente}{" "}
+														ausencias · {resumo.faltaJustificada} justificadas
+													</p>
+												</div>
+												<div className="text-right">
+													<p className="text-lg font-semibold text-gray-900">
+														{percentual}%
+													</p>
+													<p className="text-xs text-gray-500">de frequencia</p>
+												</div>
+											</div>
+										),
+									)}
+								</div>
+							)}
+						</div>
+					)}
 				</div>
 
 				{/* Inscritos sem turma hint */}
