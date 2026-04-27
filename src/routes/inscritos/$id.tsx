@@ -7,6 +7,7 @@ import {
 	ClipboardList,
 	Copy,
 	Edit3,
+	GraduationCap,
 	Save,
 	Trash2,
 	X,
