@@ -3,13 +3,14 @@ import {
 	AlertTriangle,
 	ArrowLeft,
 	Check,
+	CheckCircle,
 	ClipboardList,
 	Copy,
 	Edit3,
-	GraduationCap,
 	Save,
 	Trash2,
 	X,
+	XCircle,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { CampoComCopia } from "../../components/inscrito/CampoComCopia";
@@ -485,29 +486,33 @@ function VisualizacaoDados({ inscricao }: { inscricao: Inscricao }) {
 											{
 												value: StatusPresenca.PRESENTE,
 												label: "Presente",
+												icon: CheckCircle,
 												className:
-													"border-green-200 bg-green-50 text-green-700 hover:bg-green-100",
+													"border-gray-300 bg-white text-gray-600 hover:border-gray-400 hover:bg-gray-50",
 												activeClassName:
-													"border-green-400 bg-green-100 text-green-800",
+													"border-green-500 bg-green-500 text-white shadow-sm",
 											},
 											{
 												value: StatusPresenca.AUSENTE,
 												label: "Ausente",
+												icon: XCircle,
 												className:
-													"border-red-200 bg-red-50 text-red-700 hover:bg-red-100",
+													"border-gray-300 bg-white text-gray-600 hover:border-gray-400 hover:bg-gray-50",
 												activeClassName:
-													"border-red-400 bg-red-100 text-red-800",
+													"border-red-500 bg-red-500 text-white shadow-sm",
 											},
 											{
 												value: StatusPresenca.FALTA_JUSTIFICADA,
 												label: "Justificada",
+												icon: AlertTriangle,
 												className:
-													"border-yellow-200 bg-yellow-50 text-yellow-700 hover:bg-yellow-100",
+													"border-gray-300 bg-white text-gray-600 hover:border-gray-400 hover:bg-gray-50",
 												activeClassName:
-													"border-yellow-400 bg-yellow-100 text-yellow-800",
+													"border-yellow-500 bg-yellow-500 text-white shadow-sm",
 											},
 										].map((opcao) => {
 											const ativo = statusAtual === opcao.value;
+											const IconComponent = opcao.icon;
 											return (
 												<button
 													key={opcao.value}
@@ -519,11 +524,12 @@ function VisualizacaoDados({ inscricao }: { inscricao: Inscricao }) {
 															opcao.value,
 														)
 													}
-													className={`rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors ${
+													className={`flex items-center gap-1.5 rounded-lg border px-3 py-2 text-xs font-medium transition-all ${
 														ativo ? opcao.activeClassName : opcao.className
 													}`}
 													title={`Marcar como ${opcao.label.toLowerCase()}`}
 												>
+													<IconComponent className="h-3.5 w-3.5" />
 													{opcao.label}
 												</button>
 											);
