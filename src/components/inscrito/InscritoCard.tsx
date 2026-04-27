@@ -1,8 +1,10 @@
 import { Link } from "@tanstack/react-router";
 import { AlertTriangle, Eye, MessageCircle } from "lucide-react";
 import { abrirWhatsApp } from "../../features/inscricoes/services/whatsappService";
+import { useTurmasStore } from "../../stores/turmasStore";
 import type { Inscricao } from "../../types/inscricao";
 import { temValor } from "../../utils/completude";
+import { Badge } from "../ui/Badge";
 import { Button } from "../ui/Button";
 import { ProgressBar } from "../ui/ProgressBar";
 import { StatusBadge } from "./StatusBadge";
@@ -11,7 +13,9 @@ interface InscritoCardProps {
 	inscricao: Inscricao;
 }
 
-function calcularCamposFaltantesPadrinho(padrinho: Inscricao["padrinho"]): string[] {
+function calcularCamposFaltantesPadrinho(
+	padrinho: Inscricao["padrinho"],
+): string[] {
 	const campos: Array<{ key: keyof typeof padrinho; label: string }> = [
 		{ key: "nome", label: "Nome" },
 		{ key: "estadoCivil", label: "Estado Civil" },
@@ -20,9 +24,7 @@ function calcularCamposFaltantesPadrinho(padrinho: Inscricao["padrinho"]): strin
 		{ key: "bairro", label: "Bairro" },
 		{ key: "municipio", label: "Município" },
 	];
-	return campos
-		.filter((c) => !temValor(padrinho[c.key]))
-		.map((c) => c.label);
+	return campos.filter((c) => !temValor(padrinho[c.key])).map((c) => c.label);
 }
 
 interface InscritoCardProps {
@@ -30,10 +32,12 @@ interface InscritoCardProps {
 }
 
 export function InscritoCard({ inscricao }: InscritoCardProps) {
+	const { getById: getTurma } = useTurmasStore();
 	const nome = inscricao.crismando.nome ?? "Nome não informado";
 	const municipio = inscricao.crismando.municipio;
 	const celular = inscricao.crismando.celular;
 	const padrinhoFaltantes = calcularCamposFaltantesPadrinho(inscricao.padrinho);
+	const turma = inscricao.turmaId ? getTurma(inscricao.turmaId) : null;
 
 	return (
 		<div className="flex items-start justify-between gap-4 rounded-xl border border-gray-200 bg-white p-4 shadow-sm transition-shadow hover:shadow-md">
@@ -41,6 +45,18 @@ export function InscritoCard({ inscricao }: InscritoCardProps) {
 				<div className="mb-1 flex items-center gap-2">
 					<h3 className="truncate font-semibold text-gray-900">{nome}</h3>
 					<StatusBadge status={inscricao.status} size="sm" />
+					{turma && (
+						<Badge
+							className="text-xs"
+							style={{
+								backgroundColor: turma.cor + "20",
+								borderColor: turma.cor + "40",
+								color: turma.cor,
+							}}
+						>
+							{turma.nome}
+						</Badge>
+					)}
 				</div>
 				<div className="mb-3 flex flex-wrap gap-x-4 gap-y-0.5 text-xs text-gray-500">
 					{municipio && <span>{municipio}</span>}
@@ -62,7 +78,8 @@ export function InscritoCard({ inscricao }: InscritoCardProps) {
 							<span className="font-medium">Padrinho/Madrinha:</span>{" "}
 							{padrinhoFaltantes.length} campo
 							{padrinhoFaltantes.length > 1 ? "s" : ""} incompleto
-							{padrinhoFaltantes.length > 1 ? "s" : ""} — {padrinhoFaltantes.join(", ")}
+							{padrinhoFaltantes.length > 1 ? "s" : ""} —{" "}
+							{padrinhoFaltantes.join(", ")}
 						</span>
 					</div>
 				)}
