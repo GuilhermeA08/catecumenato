@@ -22,9 +22,11 @@ import { Input } from "../../components/ui/Input";
 import { ProgressBar } from "../../components/ui/ProgressBar";
 import { Select } from "../../components/ui/Select";
 import { CAMPOS_OBRIGATORIOS } from "../../constants/camposObrigatorios";
+import { useEncontrosStore } from "../../stores/encontrosStore";
 import { useInscricoesStore } from "../../stores/inscricoesStore";
+import { usePresencasStore } from "../../stores/presencasStore";
 import { useTurmasStore } from "../../stores/turmasStore";
-import { EstadoCivil, Sexo, Status } from "../../types/enums";
+import { EstadoCivil, Sexo, Status, StatusPresenca } from "../../types/enums";
 import type {
 	ControleAdministrativo,
 	DadosCrismando,
@@ -71,6 +73,8 @@ function InscritoPage() {
 		carregado,
 	} = useInscricoesStore();
 	const { turmas } = useTurmasStore();
+	const { encontros } = useEncontrosStore();
+	const { definirStatus, getByInscrito } = usePresencasStore();
 	const [editando, setEditando] = useState(false);
 	const [copiouTudo, setCopiouTudo] = useState(false);
 	const [cobrarCopiado, setCobrarCopiado] = useState(false);
@@ -107,9 +111,7 @@ function InscritoPage() {
 	async function handleCobrarDados() {
 		if (!inscricao || inscricao.camposFaltantes.length === 0) return;
 		const nome = inscricao.crismando.nome?.split(" ")[0] ?? "olá";
-		const campos = inscricao.camposFaltantes
-			.map((c) => `  • ${c}`)
-			.join("\n");
+		const campos = inscricao.camposFaltantes.map((c) => `  • ${c}`).join("\n");
 		const mensagem =
 			`Olá, ${nome}! 🙏` +
 			`\n\nPara completar sua inscrição na Crisma, ainda precisamos das seguintes informações:\n\n` +
@@ -157,9 +159,7 @@ function InscritoPage() {
 							<GraduationCap className="h-4 w-4 shrink-0 text-gray-400" />
 							<select
 								value={inscricao.turmaId ?? ""}
-								onChange={(e) =>
-									vincularTurma(id, e.target.value || null)
-								}
+								onChange={(e) => vincularTurma(id, e.target.value || null)}
 								className="rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-sm text-gray-700 shadow-sm transition-colors hover:border-gray-300 focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-100"
 							>
 								<option value="">Sem turma</option>
@@ -169,15 +169,16 @@ function InscritoPage() {
 									</option>
 								))}
 							</select>
-							{inscricao.turmaId && (() => {
-								const t = turmas.find(t => t.id === inscricao.turmaId);
-								return t ? (
-									<span
-										className="h-3 w-3 rounded-full shrink-0"
-										style={{ backgroundColor: t.cor }}
-									/>
-								) : null;
-							})()}
+							{inscricao.turmaId &&
+								(() => {
+									const t = turmas.find((t) => t.id === inscricao.turmaId);
+									return t ? (
+										<span
+											className="h-3 w-3 rounded-full shrink-0"
+											style={{ backgroundColor: t.cor }}
+										/>
+									) : null;
+								})()}
 						</div>
 
 						<div className="mt-3">
@@ -308,11 +309,41 @@ function InscritoPage() {
 // Visualização de dados
 // ────────────────────────────────────────────────────────
 function VisualizacaoDados({ inscricao }: { inscricao: Inscricao }) {
+	const { encontros } = useEncontrosStore();
+	const { definirStatus, getByInscrito } = usePresencasStore();
 	const { crismando, pai, mae, padrinho, controle } = inscricao;
 
 	const faltCrismando = contarFaltantesPorSecao(inscricao, "Crismando");
 	const faltPai = contarFaltantesPorSecao(inscricao, "Pai");
 	const faltMae = contarFaltantesPorSecao(inscricao, "Mãe");
+
+	// Encontros da turma do inscrito
+	const encontrosDaTurma = encontros
+		.filter((e) => e.turmaId === inscricao.turmaId)
+		.sort((a, b) => {
+			const aKey = `${a.dataEncontro} ${a.horarioInicio}`;
+			const bKey = `${b.dataEncontro} ${b.horarioInicio}`;
+			return bKey.localeCompare(aKey, "pt-BR", { sensitivity: "base" });
+		});
+
+	// Presenças do inscrito
+	const presencasDoInscrito = getByInscrito(inscricao.id);
+
+	function formatarDataPtBr(dataIso: string): string {
+		const data = new Date(`${dataIso}T00:00:00`);
+		return data.toLocaleDateString("pt-BR", {
+			day: "2-digit",
+			month: "2-digit",
+			year: "numeric",
+		});
+	}
+
+	function getStatusPresenca(encontroId: string): StatusPresenca {
+		const presenca = presencasDoInscrito.find(
+			(p) => p.encontroId === encontroId,
+		);
+		return presenca?.status ?? StatusPresenca.PENDENTE;
+	}
 
 	return (
 		<div className="flex flex-col gap-4">
@@ -427,6 +458,83 @@ function VisualizacaoDados({ inscricao }: { inscricao: Inscricao }) {
 					<CampoComCopia label="Município" valor={padrinho.municipio} />
 				</div>
 			</SecaoDados>
+
+			{/* Presença nos encontros */}
+			{inscricao.turmaId && encontrosDaTurma.length > 0 && (
+				<SecaoDados titulo="Presença nos Encontros" defaultAberta={false}>
+					<div className="space-y-3">
+						{encontrosDaTurma.map((encontro) => {
+							const statusAtual = getStatusPresenca(encontro.id);
+							return (
+								<div
+									key={encontro.id}
+									className="flex flex-col gap-3 rounded-lg border border-gray-200 p-4 sm:flex-row sm:items-center sm:justify-between"
+								>
+									<div className="min-w-0 flex-1">
+										<p className="font-medium text-gray-900">
+											{formatarDataPtBr(encontro.dataEncontro)} -{" "}
+											{encontro.horarioInicio}
+											{encontro.horarioFim ? ` às ${encontro.horarioFim}` : ""}
+										</p>
+										<p className="text-sm text-gray-500">
+											{encontro.local || "Local não informado"}
+										</p>
+									</div>
+									<div className="flex items-center gap-2">
+										{[
+											{
+												value: StatusPresenca.PRESENTE,
+												label: "Presente",
+												className:
+													"border-green-200 bg-green-50 text-green-700 hover:bg-green-100",
+												activeClassName:
+													"border-green-400 bg-green-100 text-green-800",
+											},
+											{
+												value: StatusPresenca.AUSENTE,
+												label: "Ausente",
+												className:
+													"border-red-200 bg-red-50 text-red-700 hover:bg-red-100",
+												activeClassName:
+													"border-red-400 bg-red-100 text-red-800",
+											},
+											{
+												value: StatusPresenca.FALTA_JUSTIFICADA,
+												label: "Justificada",
+												className:
+													"border-yellow-200 bg-yellow-50 text-yellow-700 hover:bg-yellow-100",
+												activeClassName:
+													"border-yellow-400 bg-yellow-100 text-yellow-800",
+											},
+										].map((opcao) => {
+											const ativo = statusAtual === opcao.value;
+											return (
+												<button
+													key={opcao.value}
+													type="button"
+													onClick={() =>
+														definirStatus(
+															encontro.id,
+															inscricao.id,
+															opcao.value,
+														)
+													}
+													className={`rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors ${
+														ativo ? opcao.activeClassName : opcao.className
+													}`}
+													title={`Marcar como ${opcao.label.toLowerCase()}`}
+												>
+													{opcao.label}
+												</button>
+											);
+										})}
+									</div>
+								</div>
+							);
+						})}
+					</div>
+				</SecaoDados>
+			)}
 
 			{/* Controle administrativo */}
 			<SecaoDados titulo="Controle Administrativo" defaultAberta={false}>
