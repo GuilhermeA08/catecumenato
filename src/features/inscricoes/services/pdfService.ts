@@ -1,3 +1,6 @@
+import { useEncontrosStore } from "../../../stores/encontrosStore";
+import { usePresencasStore } from "../../../stores/presencasStore";
+import { StatusPresenca } from "../../../types/enums";
 import type { Inscricao } from "../../../types/inscricao";
 import type { Turma } from "../../../types/turma";
 import { calcularIdade } from "../../../utils/mascaras";
@@ -19,9 +22,13 @@ export function exportarTodasTurmasPDF(
 		membros: inscricoes
 			.filter((i) => i.turmaId === t.id)
 			.sort((a, b) =>
-				(a.crismando.nome ?? "").localeCompare(b.crismando.nome ?? "", "pt-BR", {
-					sensitivity: "base",
-				}),
+				(a.crismando.nome ?? "").localeCompare(
+					b.crismando.nome ?? "",
+					"pt-BR",
+					{
+						sensitivity: "base",
+					},
+				),
 			),
 	}));
 
@@ -370,6 +377,11 @@ export function exportarTurmaPDF(turma: Turma, membros: Inscricao[]): void {
 		minute: "2-digit",
 	} as Intl.DateTimeFormatOptions);
 
+	const encontrosDaTurma = useEncontrosStore.getState().getByTurma(turma.id);
+	const encontroIdsDaTurma = new Set(encontrosDaTurma.map((e) => e.id));
+	const { getByInscrito } = usePresencasStore.getState();
+	const totalEncontrosDaTurma = encontrosDaTurma.length;
+
 	const comTelefone = membros.filter((m) => m.crismando.celular).length;
 
 	const linhas = membros
@@ -380,10 +392,31 @@ export function exportarTurmaPDF(turma: Turma, membros: Inscricao[]): void {
 			const idade = calcularIdade(m.crismando.dataNascimento);
 			const idadeStr = idade !== null ? `${idade} anos` : "—";
 			const semIdade = idade === null;
+
+			const presencasDoMembro = getByInscrito(m.id).filter((p) =>
+				encontroIdsDaTurma.has(p.encontroId),
+			);
+			const diasValidos = presencasDoMembro.filter(
+				(p) =>
+					p.status === StatusPresenca.PRESENTE ||
+					p.status === StatusPresenca.FALTA_JUSTIFICADA,
+			).length;
+			const percentual =
+				totalEncontrosDaTurma === 0
+					? 0
+					: Math.round((diasValidos / totalEncontrosDaTurma) * 100);
+			const presencaStr =
+				totalEncontrosDaTurma === 0
+					? "—"
+					: `${diasValidos}/${totalEncontrosDaTurma}`;
+			const percentualStr =
+				totalEncontrosDaTurma === 0 ? "—" : `${percentual}%`;
 			return `
 		<tr class="${idx % 2 === 0 ? "par" : "impar"}">
 			<td class="num">${idx + 1}</td>
 			<td class="nome">${escapeHtml(nome)}</td>
+			<td class="presenca">${escapeHtml(presencaStr)}</td>
+			<td class="percent">${escapeHtml(percentualStr)}</td>
 			<td class="idade ${semIdade ? "sem-dado" : ""}">${escapeHtml(idadeStr)}</td>
 			<td class="tel ${semTel ? "sem-dado" : ""}">${escapeHtml(tel)}</td>
 		</tr>`;
@@ -507,8 +540,10 @@ export function exportarTurmaPDF(turma: Turma, membros: Inscricao[]): void {
 			background: ${corHex}0d;
 		}
 		thead th.col-num { text-align: center; width: 48px; }
+		thead th.col-presenca { width: 92px; text-align: center; }
+		thead th.col-percent { width: 70px; text-align: center; }
 		thead th.col-idade { width: 90px; text-align: center; }
-		thead th.col-tel { width: 200px; }
+		thead th.col-tel { width: 170px; }
 
 		tbody tr {
 			transition: background 0.1s;
@@ -534,6 +569,11 @@ export function exportarTurmaPDF(turma: Turma, membros: Inscricao[]): void {
 		td.nome {
 			font-weight: 500;
 			color: #1a1a2e;
+		}
+		td.presenca, td.percent {
+			text-align: center;
+			color: #374151;
+			font-variant-numeric: tabular-nums;
 		}
 		td.idade {
 			text-align: center;
@@ -598,6 +638,8 @@ export function exportarTurmaPDF(turma: Turma, membros: Inscricao[]): void {
 				<tr>
 					<th class="col-num">#</th>
 					<th>Nome</th>
+					<th class="col-presenca">Presenças</th>
+					<th class="col-percent">%</th>
 					<th class="col-idade">Idade</th>
 					<th class="col-tel">Telefone / Celular</th>
 				</tr>
