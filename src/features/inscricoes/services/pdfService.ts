@@ -811,17 +811,20 @@ body {
 }
 
 .secao {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
 	margin-bottom: 24px;
 }
 .secao-titulo {
+	grid-column: 1 / -1;
 	font-size: 12px;
-	font-weight: 700;
+	font-weight: 800;
 	text-transform: uppercase;
 	letter-spacing: 0.8px;
 	color: #1e3a5f;
 	border-bottom: 2px solid #1e3a5f;
-	padding-bottom: 4px;
-	margin-bottom: 0;
+	padding-bottom: 5px;
+	margin-bottom: 3px;
 }
 .campo {
 	display: flex;
@@ -834,10 +837,13 @@ body {
 	width: 200px;
 	flex-shrink: 0;
 	font-size: 11px;
-	font-weight: 600;
+	font-weight: 700;
 	color: #374151;
 	text-transform: uppercase;
 	letter-spacing: 0.3px;
+}
+.campo-full {
+	grid-column: 1 / -1;
 }
 .valor {
 	flex: 1;
@@ -893,6 +899,7 @@ body {
 interface CampoFormDef {
 	path: string;
 	label: string;
+	fullWidth?: boolean;
 }
 
 function getSecoesFormulario(): { titulo: string; campos: CampoFormDef[] }[] {
@@ -900,19 +907,19 @@ function getSecoesFormulario(): { titulo: string; campos: CampoFormDef[] }[] {
 		{
 			titulo: "Dados do Crismando(a)",
 			campos: [
-				{ path: "crismando.nome", label: "Nome" },
+				{ path: "crismando.nome", label: "Nome", fullWidth: true },
 				{ path: "crismando.dataNascimento", label: "Data de Nascimento" },
 				{ path: "crismando.celular", label: "Celular" },
 				{ path: "crismando.sexo", label: "Sexo" },
 				{ path: "crismando.estadoCivil", label: "Estado Civil" },
 				{ path: "crismando.naturalidade", label: "Naturalidade" },
-				{ path: "crismando.endereco", label: "Endereço" },
+				{ path: "crismando.endereco", label: "Endereço", fullWidth: true },
 				{ path: "crismando.bairro", label: "Bairro" },
 				{ path: "crismando.municipio", label: "Município" },
-				{ path: "crismando.batizado", label: "É batizado(a)?" },
-				{ path: "crismando.paroquiaBatismo", label: "Paróquia do Batismo" },
-				{ path: "crismando.fezPrimeiraEucaristia", label: "Fez Primeira Eucaristia?" },
-				{ path: "crismando.paroquiaEucaristia", label: "Paróquia da Eucaristia" },
+				{ path: "crismando.batizado", label: "É batizado(a)?", fullWidth: true },
+				{ path: "crismando.paroquiaBatismo", label: "Paróquia do Batismo", fullWidth: true },
+				{ path: "crismando.fezPrimeiraEucaristia", label: "Fez Primeira Eucaristia?", fullWidth: true },
+				{ path: "crismando.paroquiaEucaristia", label: "Paróquia da Eucaristia", fullWidth: true },
 				{ path: "crismando.diaEncontro", label: "Dia do Encontro" },
 				{ path: "crismando.horario", label: "Horário" },
 			],
@@ -920,10 +927,10 @@ function getSecoesFormulario(): { titulo: string; campos: CampoFormDef[] }[] {
 		{
 			titulo: "Dados do Pai",
 			campos: [
-				{ path: "pai.nome", label: "Nome" },
+				{ path: "pai.nome", label: "Nome", fullWidth: true },
 				{ path: "pai.estadoCivil", label: "Estado Civil" },
 				{ path: "pai.naturalidade", label: "Naturalidade" },
-				{ path: "pai.endereco", label: "Endereço" },
+				{ path: "pai.endereco", label: "Endereço", fullWidth: true },
 				{ path: "pai.bairro", label: "Bairro" },
 				{ path: "pai.municipio", label: "Município" },
 				{ path: "pai.celular", label: "Celular" },
@@ -932,38 +939,13 @@ function getSecoesFormulario(): { titulo: string; campos: CampoFormDef[] }[] {
 		{
 			titulo: "Dados da Mãe",
 			campos: [
-				{ path: "mae.nome", label: "Nome" },
+				{ path: "mae.nome", label: "Nome", fullWidth: true },
 				{ path: "mae.estadoCivil", label: "Estado Civil" },
 				{ path: "mae.naturalidade", label: "Naturalidade" },
-				{ path: "mae.endereco", label: "Endereço" },
+				{ path: "mae.endereco", label: "Endereço", fullWidth: true },
 				{ path: "mae.bairro", label: "Bairro" },
 				{ path: "mae.municipio", label: "Município" },
 				{ path: "mae.celular", label: "Celular" },
-			],
-		},
-		{
-			titulo: "Dados do Padrinho/Madrinha",
-			campos: [
-				{ path: "padrinho.nome", label: "Nome" },
-				{ path: "padrinho.estadoCivil", label: "Estado Civil" },
-				{ path: "padrinho.celular", label: "Celular" },
-				{ path: "padrinho.endereco", label: "Endereço" },
-				{ path: "padrinho.bairro", label: "Bairro" },
-				{ path: "padrinho.municipio", label: "Município" },
-			],
-		},
-		{
-			titulo: "Controle Administrativo",
-			campos: [
-				{ path: "controle.catequistas", label: "Catequistas" },
-				{ path: "controle.celebrante", label: "Celebrante" },
-				{ path: "controle.local", label: "Local da Crisma" },
-				{ path: "controle.data", label: "Data da Crisma" },
-				{ path: "controle.livro", label: "Livro" },
-				{ path: "controle.folha", label: "Folha" },
-				{ path: "controle.numero", label: "Número" },
-				{ path: "controle.inicioPreparacao", label: "Início da Preparação" },
-				{ path: "controle.fimPreparacao", label: "Fim da Preparação" },
 			],
 		},
 	];
@@ -984,50 +966,51 @@ function formatarData(valor: string): string {
 	return valor;
 }
 
-function gerarCampoHtml(path: string, label: string, inscricao?: Inscricao): string {
+function gerarCampoHtml(path: string, label: string, inscricao?: Inscricao, fullWidth?: boolean): string {
+	const campoClass = fullWidth ? "campo campo-full" : "campo";
 	const rotulo = `<span class="rotulo">${escapeHtml(label)}</span>`;
 
 	if (!inscricao) {
 		if (path.endsWith(".batizado") || path.endsWith(".fezPrimeiraEucaristia")) {
-			return `<div class="campo">${rotulo}<span class="valor-checkbox"><span class="opcao">(  ) Sim</span><span class="opcao">(  ) Não</span></span></div>`;
+			return `<div class="${campoClass}">${rotulo}<span class="valor-checkbox"><span class="opcao">(  ) Sim</span><span class="opcao">(  ) Não</span></span></div>`;
 		}
 		if (path.endsWith(".sexo")) {
-			return `<div class="campo">${rotulo}<span class="valor-checkbox"><span class="opcao">(  ) M</span><span class="opcao">(  ) F</span></span></div>`;
+			return `<div class="${campoClass}">${rotulo}<span class="valor-checkbox"><span class="opcao">(  ) M</span><span class="opcao">(  ) F</span></span></div>`;
 		}
-		return `<div class="campo">${rotulo}<span class="valor vazio"></span></div>`;
+		return `<div class="${campoClass}">${rotulo}<span class="valor vazio"></span></div>`;
 	}
 
 	const val = getValorPorPath(inscricao as unknown as Record<string, unknown>, path);
 
 	if (val === null || val === undefined || val === "") {
 		if (path.endsWith(".batizado") || path.endsWith(".fezPrimeiraEucaristia")) {
-			return `<div class="campo">${rotulo}<span class="valor-checkbox"><span class="opcao">(  ) Sim</span><span class="opcao">(  ) Não</span></span></div>`;
+			return `<div class="${campoClass}">${rotulo}<span class="valor-checkbox"><span class="opcao">(  ) Sim</span><span class="opcao">(  ) Não</span></span></div>`;
 		}
 		if (path.endsWith(".sexo")) {
-			return `<div class="campo">${rotulo}<span class="valor-checkbox"><span class="opcao">(  ) M</span><span class="opcao">(  ) F</span></span></div>`;
+			return `<div class="${campoClass}">${rotulo}<span class="valor-checkbox"><span class="opcao">(  ) M</span><span class="opcao">(  ) F</span></span></div>`;
 		}
-		return `<div class="campo">${rotulo}<span class="valor vazio"></span></div>`;
+		return `<div class="${campoClass}">${rotulo}<span class="valor vazio"></span></div>`;
 	}
 
 	if (path.endsWith(".batizado") || path.endsWith(".fezPrimeiraEucaristia")) {
 		const sim = val === true;
-		return `<div class="campo">${rotulo}<span class="valor-checkbox"><span class="opcao${sim ? " marcado" : ""}">${sim ? "(X)" : "( )"} Sim</span><span class="opcao${!sim ? " marcado" : ""}">${!sim ? "(X)" : "( )"} Não</span></span></div>`;
+		return `<div class="${campoClass}">${rotulo}<span class="valor-checkbox"><span class="opcao${sim ? " marcado" : ""}">${sim ? "(X)" : "( )"} Sim</span><span class="opcao${!sim ? " marcado" : ""}">${!sim ? "(X)" : "( )"} Não</span></span></div>`;
 	}
 
 	if (path.endsWith(".sexo")) {
 		const masc = val === "M" || val === "Masculino";
 		const fem = val === "F" || val === "Feminino";
-		return `<div class="campo">${rotulo}<span class="valor-checkbox"><span class="opcao${masc ? " marcado" : ""}">${masc ? "(X)" : "( )"} M</span><span class="opcao${fem ? " marcado" : ""}">${fem ? "(X)" : "( )"} F</span></span></div>`;
+		return `<div class="${campoClass}">${rotulo}<span class="valor-checkbox"><span class="opcao${masc ? " marcado" : ""}">${masc ? "(X)" : "( )"} M</span><span class="opcao${fem ? " marcado" : ""}">${fem ? "(X)" : "( )"} F</span></span></div>`;
 	}
 
 	if (path.endsWith(".dataNascimento") || path.endsWith(".data") || path.endsWith(".inicioPreparacao") || path.endsWith(".fimPreparacao")) {
 		const strVal = String(val);
 		if (strVal.match(/^\d{4}-\d{2}-\d{2}$/)) {
-			return `<div class="campo">${rotulo}<span class="valor">${escapeHtml(formatarData(strVal))}</span></div>`;
+			return `<div class="${campoClass}">${rotulo}<span class="valor">${escapeHtml(formatarData(strVal))}</span></div>`;
 		}
 	}
 
-	return `<div class="campo">${rotulo}<span class="valor">${escapeHtml(String(val))}</span></div>`;
+	return `<div class="${campoClass}">${rotulo}<span class="valor">${escapeHtml(String(val))}</span></div>`;
 }
 
 function gerarFormularioHtml(
@@ -1040,7 +1023,7 @@ function gerarFormularioHtml(
 	const secoesHtml = secoes
 		.map(
 			(sec) =>
-				`<div class="secao"><h2 class="secao-titulo">${escapeHtml(sec.titulo)}</h2>${sec.campos.map((c) => gerarCampoHtml(c.path, c.label, inscricao)).join("\n")}</div>`,
+				`<div class="secao"><h2 class="secao-titulo">${escapeHtml(sec.titulo)}</h2>${sec.campos.map((c) => gerarCampoHtml(c.path, c.label, inscricao, c.fullWidth)).join("\n")}</div>`,
 		)
 		.join("\n");
 
