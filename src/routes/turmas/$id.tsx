@@ -6,6 +6,7 @@ import {
 	ChevronUp,
 	ClipboardCheck,
 	FileDown,
+	FileText,
 	GraduationCap,
 	PlusCircle,
 	Search,
@@ -18,7 +19,10 @@ import { useId, useMemo, useState } from "react";
 import { PresencaBadge } from "../../components/encontro/PresencaBadge";
 import { PageContainer } from "../../components/layout/PageContainer";
 import { Button } from "../../components/ui/Button";
-import { exportarTurmaPDF } from "../../features/inscricoes/services/pdfService";
+import {
+	exportarTurmaFichasInscricaoPDF,
+	exportarTurmaPDF,
+} from "../../features/inscricoes/services/pdfService";
 import { useEncontrosStore } from "../../stores/encontrosStore";
 import { useInscricoesStore } from "../../stores/inscricoesStore";
 import { usePresencasStore } from "../../stores/presencasStore";
@@ -481,6 +485,17 @@ function TurmaDetalhePage() {
 				description={turma.descricao ?? ""}
 				actions={
 					<div className="flex items-center gap-2">
+						{membros.length > 0 && (
+							<Button
+								variant="secondary"
+								size="sm"
+								onClick={() => exportarTurmaFichasInscricaoPDF(turma, membros)}
+								title="Imprimir fichas de inscrição"
+							>
+								<FileText className="h-4 w-4" />
+								Fichas
+							</Button>
+						)}
 						{membros.length > 0 && (
 							<Button
 								variant="secondary"

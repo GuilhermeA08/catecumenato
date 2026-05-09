@@ -675,6 +675,390 @@ export function exportarTurmaPDF(turma: Turma, membros: Inscricao[]): void {
 	janela.document.close();
 }
 
+export function exportarTurmaFichasInscricaoPDF(
+	turma: Turma,
+	membros: Inscricao[],
+): void {
+	const dataGeracao = new Date().toLocaleDateString("pt-BR", {
+		day: "2-digit",
+		month: "long",
+		year: "numeric",
+		hour: "2-digit",
+		minute: "2-digit",
+	} as Intl.DateTimeFormatOptions);
+
+	const formularios = membros
+		.map((m, idx) => gerarFormularioHtml(m, turma.nome, idx + 1, membros.length))
+		.join("\n<div class=\"page-break\"></div>\n");
+
+	const html = `<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+	<meta charset="UTF-8" />
+	<title>Fichas de Inscrição — ${escapeHtml(turma.nome)}</title>
+	<style>
+		${ESTILO_FORMS}
+	</style>
+</head>
+<body>
+	${formularios}
+	<div class="footer-print">
+		<p>Catecumenato · Fichas de Inscrição · ${escapeHtml(turma.nome)} · Gerado em ${dataGeracao}</p>
+	</div>
+<script>
+	window.onload = function() { window.print(); };
+</script>
+</body>
+</html>`;
+
+	const janela = window.open("", "_blank");
+	if (!janela) {
+		alert(
+			"Não foi possível abrir a janela de impressão. Verifique se pop-ups estão permitidos.",
+		);
+		return;
+	}
+	janela.document.write(html);
+	janela.document.close();
+}
+
+export function exportarFichaEmBrancoPDF(): void {
+	const html = `<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+	<meta charset="UTF-8" />
+	<title>Ficha de Inscrição em Branco</title>
+	<style>
+		${ESTILO_FORMS}
+	</style>
+</head>
+<body>
+	${gerarFormularioHtml(undefined, undefined)}
+	<div class="footer-print">
+		<p>Catecumenato · Ficha de Inscrição em Branco</p>
+	</div>
+<script>
+	window.onload = function() { window.print(); };
+</script>
+</body>
+</html>`;
+
+	const janela = window.open("", "_blank");
+	if (!janela) {
+		alert(
+			"Não foi possível abrir a janela de impressão. Verifique se pop-ups estão permitidos.",
+		);
+		return;
+	}
+	janela.document.write(html);
+	janela.document.close();
+}
+
+const ESTILO_FORMS = `
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+	font-family: 'Inter', Arial, sans-serif;
+	font-size: 13px;
+	color: #1a1a2e;
+	background: #f8f9fb;
+}
+
+.page-break {
+	page-break-before: always;
+	height: 0;
+}
+
+.pagina {
+	max-width: 210mm;
+	margin: 0 auto;
+	background: #fff;
+	min-height: 100vh;
+	padding: 40px 50px;
+	box-shadow: 0 0 40px rgba(0,0,0,0.08);
+}
+
+.cabecalho {
+	text-align: center;
+	margin-bottom: 32px;
+	padding-bottom: 16px;
+	border-bottom: 3px double #1a1a2e;
+}
+.cabecalho h1 {
+	font-size: 22px;
+	font-weight: 700;
+	letter-spacing: 1px;
+	text-transform: uppercase;
+	margin-bottom: 8px;
+}
+.cabecalho .turma {
+	font-size: 14px;
+	font-weight: 500;
+	color: #374151;
+}
+.cabecalho .aluno {
+	font-size: 16px;
+	font-weight: 600;
+	color: #1a1a2e;
+	margin-top: 4px;
+}
+.cabecalho .contador {
+	font-size: 11px;
+	color: #9ca3af;
+	margin-top: 6px;
+}
+
+.secao {
+	margin-bottom: 24px;
+}
+.secao-titulo {
+	font-size: 12px;
+	font-weight: 700;
+	text-transform: uppercase;
+	letter-spacing: 0.8px;
+	color: #1e3a5f;
+	border-bottom: 2px solid #1e3a5f;
+	padding-bottom: 4px;
+	margin-bottom: 0;
+}
+.campo {
+	display: flex;
+	align-items: baseline;
+	min-height: 30px;
+	border-bottom: 1px solid #222;
+	padding: 3px 0;
+}
+.rotulo {
+	width: 200px;
+	flex-shrink: 0;
+	font-size: 11px;
+	font-weight: 600;
+	color: #374151;
+	text-transform: uppercase;
+	letter-spacing: 0.3px;
+}
+.valor {
+	flex: 1;
+	font-size: 13px;
+	color: #1a1a2e;
+	min-height: 1.2em;
+	padding-left: 4px;
+}
+.valor.vazio {
+	color: transparent;
+	flex: 1;
+	min-width: 40px;
+}
+
+.valor-checkbox {
+	flex: 1;
+	font-size: 13px;
+	color: #1a1a2e;
+	padding-left: 4px;
+}
+.valor-checkbox .opcao {
+	display: inline-block;
+	margin-right: 20px;
+}
+.valor-checkbox .marcado {
+	font-weight: 700;
+}
+
+.rodape {
+	margin-top: 40px;
+	padding-top: 12px;
+	border-top: 1px solid #d1d5db;
+	font-size: 10px;
+	color: #9ca3af;
+	text-align: center;
+}
+
+.footer-print {
+	text-align: center;
+	padding: 8px 0;
+	font-size: 10px;
+	color: #9ca3af;
+}
+
+@media print {
+	body { background: #fff; }
+	.pagina { box-shadow: none; padding: 30px 40px; }
+	.page-break { page-break-before: always; }
+	.cabecalho { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+}
+`;
+
+interface CampoFormDef {
+	path: string;
+	label: string;
+}
+
+function getSecoesFormulario(): { titulo: string; campos: CampoFormDef[] }[] {
+	return [
+		{
+			titulo: "Dados do Crismando(a)",
+			campos: [
+				{ path: "crismando.nome", label: "Nome" },
+				{ path: "crismando.dataNascimento", label: "Data de Nascimento" },
+				{ path: "crismando.celular", label: "Celular" },
+				{ path: "crismando.sexo", label: "Sexo" },
+				{ path: "crismando.estadoCivil", label: "Estado Civil" },
+				{ path: "crismando.naturalidade", label: "Naturalidade" },
+				{ path: "crismando.endereco", label: "Endereço" },
+				{ path: "crismando.bairro", label: "Bairro" },
+				{ path: "crismando.municipio", label: "Município" },
+				{ path: "crismando.batizado", label: "É batizado(a)?" },
+				{ path: "crismando.paroquiaBatismo", label: "Paróquia do Batismo" },
+				{ path: "crismando.fezPrimeiraEucaristia", label: "Fez Primeira Eucaristia?" },
+				{ path: "crismando.paroquiaEucaristia", label: "Paróquia da Eucaristia" },
+				{ path: "crismando.diaEncontro", label: "Dia do Encontro" },
+				{ path: "crismando.horario", label: "Horário" },
+			],
+		},
+		{
+			titulo: "Dados do Pai",
+			campos: [
+				{ path: "pai.nome", label: "Nome" },
+				{ path: "pai.estadoCivil", label: "Estado Civil" },
+				{ path: "pai.naturalidade", label: "Naturalidade" },
+				{ path: "pai.endereco", label: "Endereço" },
+				{ path: "pai.bairro", label: "Bairro" },
+				{ path: "pai.municipio", label: "Município" },
+				{ path: "pai.celular", label: "Celular" },
+			],
+		},
+		{
+			titulo: "Dados da Mãe",
+			campos: [
+				{ path: "mae.nome", label: "Nome" },
+				{ path: "mae.estadoCivil", label: "Estado Civil" },
+				{ path: "mae.naturalidade", label: "Naturalidade" },
+				{ path: "mae.endereco", label: "Endereço" },
+				{ path: "mae.bairro", label: "Bairro" },
+				{ path: "mae.municipio", label: "Município" },
+				{ path: "mae.celular", label: "Celular" },
+			],
+		},
+		{
+			titulo: "Dados do Padrinho/Madrinha",
+			campos: [
+				{ path: "padrinho.nome", label: "Nome" },
+				{ path: "padrinho.estadoCivil", label: "Estado Civil" },
+				{ path: "padrinho.celular", label: "Celular" },
+				{ path: "padrinho.endereco", label: "Endereço" },
+				{ path: "padrinho.bairro", label: "Bairro" },
+				{ path: "padrinho.municipio", label: "Município" },
+			],
+		},
+		{
+			titulo: "Controle Administrativo",
+			campos: [
+				{ path: "controle.catequistas", label: "Catequistas" },
+				{ path: "controle.celebrante", label: "Celebrante" },
+				{ path: "controle.local", label: "Local da Crisma" },
+				{ path: "controle.data", label: "Data da Crisma" },
+				{ path: "controle.livro", label: "Livro" },
+				{ path: "controle.folha", label: "Folha" },
+				{ path: "controle.numero", label: "Número" },
+				{ path: "controle.inicioPreparacao", label: "Início da Preparação" },
+				{ path: "controle.fimPreparacao", label: "Fim da Preparação" },
+			],
+		},
+	];
+}
+
+function getValorPorPath(obj: Record<string, unknown>, path: string): unknown {
+	return path.split(".").reduce<unknown>((acc, key) => {
+		if (acc == null || typeof acc !== "object") return undefined;
+		return (acc as Record<string, unknown>)[key];
+	}, obj as unknown);
+}
+
+function formatarData(valor: string): string {
+	const d = new Date(`${valor}T00:00:00`);
+	if (!isNaN(d.getTime())) {
+		return d.toLocaleDateString("pt-BR");
+	}
+	return valor;
+}
+
+function gerarCampoHtml(path: string, label: string, inscricao?: Inscricao): string {
+	const rotulo = `<span class="rotulo">${escapeHtml(label)}</span>`;
+
+	if (!inscricao) {
+		if (path.endsWith(".batizado") || path.endsWith(".fezPrimeiraEucaristia")) {
+			return `<div class="campo">${rotulo}<span class="valor-checkbox"><span class="opcao">(  ) Sim</span><span class="opcao">(  ) Não</span></span></div>`;
+		}
+		if (path.endsWith(".sexo")) {
+			return `<div class="campo">${rotulo}<span class="valor-checkbox"><span class="opcao">(  ) M</span><span class="opcao">(  ) F</span></span></div>`;
+		}
+		return `<div class="campo">${rotulo}<span class="valor vazio"></span></div>`;
+	}
+
+	const val = getValorPorPath(inscricao as unknown as Record<string, unknown>, path);
+
+	if (val === null || val === undefined || val === "") {
+		if (path.endsWith(".batizado") || path.endsWith(".fezPrimeiraEucaristia")) {
+			return `<div class="campo">${rotulo}<span class="valor-checkbox"><span class="opcao">(  ) Sim</span><span class="opcao">(  ) Não</span></span></div>`;
+		}
+		if (path.endsWith(".sexo")) {
+			return `<div class="campo">${rotulo}<span class="valor-checkbox"><span class="opcao">(  ) M</span><span class="opcao">(  ) F</span></span></div>`;
+		}
+		return `<div class="campo">${rotulo}<span class="valor vazio"></span></div>`;
+	}
+
+	if (path.endsWith(".batizado") || path.endsWith(".fezPrimeiraEucaristia")) {
+		const sim = val === true;
+		return `<div class="campo">${rotulo}<span class="valor-checkbox"><span class="opcao${sim ? " marcado" : ""}">${sim ? "(X)" : "( )"} Sim</span><span class="opcao${!sim ? " marcado" : ""}">${!sim ? "(X)" : "( )"} Não</span></span></div>`;
+	}
+
+	if (path.endsWith(".sexo")) {
+		const masc = val === "M" || val === "Masculino";
+		const fem = val === "F" || val === "Feminino";
+		return `<div class="campo">${rotulo}<span class="valor-checkbox"><span class="opcao${masc ? " marcado" : ""}">${masc ? "(X)" : "( )"} M</span><span class="opcao${fem ? " marcado" : ""}">${fem ? "(X)" : "( )"} F</span></span></div>`;
+	}
+
+	if (path.endsWith(".dataNascimento") || path.endsWith(".data") || path.endsWith(".inicioPreparacao") || path.endsWith(".fimPreparacao")) {
+		const strVal = String(val);
+		if (strVal.match(/^\d{4}-\d{2}-\d{2}$/)) {
+			return `<div class="campo">${rotulo}<span class="valor">${escapeHtml(formatarData(strVal))}</span></div>`;
+		}
+	}
+
+	return `<div class="campo">${rotulo}<span class="valor">${escapeHtml(String(val))}</span></div>`;
+}
+
+function gerarFormularioHtml(
+	inscricao?: Inscricao,
+	turmaNome?: string,
+	indice?: number,
+	total?: number,
+): string {
+	const secoes = getSecoesFormulario();
+	const secoesHtml = secoes
+		.map(
+			(sec) =>
+				`<div class="secao"><h2 class="secao-titulo">${escapeHtml(sec.titulo)}</h2>${sec.campos.map((c) => gerarCampoHtml(c.path, c.label, inscricao)).join("\n")}</div>`,
+		)
+		.join("\n");
+
+	const nomeAluno = inscricao?.crismando.nome ?? "";
+	const numero = indice && total ? ` · ${indice}/${total}` : "";
+
+	return `
+<div class="pagina">
+	<div class="cabecalho">
+		<h1>Ficha de Inscrição</h1>
+		${turmaNome ? `<p class="turma">Turma: ${escapeHtml(turmaNome)}</p>` : ""}
+		${nomeAluno ? `<p class="aluno">Aluno(a): ${escapeHtml(nomeAluno)}</p>` : ""}
+		${numero ? `<p class="contador">${numero}</p>` : ""}
+	</div>
+	${secoesHtml}
+</div>`;
+}
+
 function escapeHtml(str: string): string {
 	return str
 		.replace(/&/g, "&amp;")

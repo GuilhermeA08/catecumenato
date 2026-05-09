@@ -1,8 +1,9 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { ArrowRight, Church, UserPlus } from "lucide-react";
+import { ArrowRight, Church, FileText, UserPlus } from "lucide-react";
 import { CSVUploader } from "../components/csv/CSVUploader";
 import { PageContainer } from "../components/layout/PageContainer";
 import { Button } from "../components/ui/Button";
+import { exportarFichaEmBrancoPDF } from "../features/inscricoes/services/pdfService";
 import { useInscricoesStore } from "../stores/inscricoesStore";
 
 export const Route = createFileRoute("/")({ component: HomePage });
@@ -67,7 +68,7 @@ function HomePage() {
 						<span className="text-xs text-gray-400">ou</span>
 						<hr className="flex-1 border-gray-200" />
 					</div>
-					<div className="mt-4 text-center">
+					<div className="mt-4 flex items-center justify-center gap-3">
 						<Link to="/inscritos/novo">
 							<button
 								type="button"
@@ -77,6 +78,14 @@ function HomePage() {
 								Cadastrar manualmente
 							</button>
 						</Link>
+						<button
+							type="button"
+							onClick={exportarFichaEmBrancoPDF}
+							className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 hover:border-gray-400"
+						>
+							<FileText className="h-4 w-4" />
+							Ficha em branco
+						</button>
 					</div>
 				</div>
 
