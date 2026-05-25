@@ -617,35 +617,35 @@ function FormEdicao({ inscricao, onSalvar, onCancelar }: FormEdicaoProps) {
 		key: K,
 		value: DadosCrismando[K],
 	) {
-		setCrismando((prev) => ({ ...prev, [key]: value || null }));
+		setCrismando((prev) => ({ ...prev, [key]: value ?? null }));
 	}
 
 	function updatePai<K extends keyof DadosPessoa>(
 		key: K,
 		value: DadosPessoa[K],
 	) {
-		setPai((prev) => ({ ...prev, [key]: value || null }));
+		setPai((prev) => ({ ...prev, [key]: value ?? null }));
 	}
 
 	function updateMae<K extends keyof DadosPessoa>(
 		key: K,
 		value: DadosPessoa[K],
 	) {
-		setMae((prev) => ({ ...prev, [key]: value || null }));
+		setMae((prev) => ({ ...prev, [key]: value ?? null }));
 	}
 
 	function updatePadrinho<K extends keyof DadosPadrinhoMadrinha>(
 		key: K,
 		value: DadosPadrinhoMadrinha[K],
 	) {
-		setPadrinho((prev) => ({ ...prev, [key]: value || null }));
+		setPadrinho((prev) => ({ ...prev, [key]: value ?? null }));
 	}
 
 	function updateControle<K extends keyof ControleAdministrativo>(
 		key: K,
 		value: ControleAdministrativo[K],
 	) {
-		setControle((prev) => ({ ...prev, [key]: value || null }));
+		setControle((prev) => ({ ...prev, [key]: value ?? null }));
 	}
 
 	return (
