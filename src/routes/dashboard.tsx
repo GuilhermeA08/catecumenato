@@ -1,6 +1,14 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { ArrowRight, CheckCircle, Clock, Download, Users } from "lucide-react";
-import { useEffect } from "react";
+import {
+	ArrowRight,
+	CheckCircle,
+	Clock,
+	Download,
+	FileDown,
+	Upload,
+	Users,
+} from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 import { InscritoCard } from "../components/inscrito/InscritoCard";
 import { PageContainer } from "../components/layout/PageContainer";
 import { Button } from "../components/ui/Button";
@@ -10,6 +18,10 @@ import {
 	CardHeader,
 	CardTitle,
 } from "../components/ui/Card";
+import {
+	exportarJSON,
+	importarJSON,
+} from "../features/inscricoes/services/jsonService";
 import { useInscricoesStore } from "../stores/inscricoesStore";
 import { Status } from "../types/enums";
 
@@ -58,10 +70,40 @@ function DashboardPage() {
 	const navigate = useNavigate();
 	const { carregado, inscricoes, getTotais, exportar } = useInscricoesStore();
 	const totais = getTotais();
+	const fileInputRef = useRef<HTMLInputElement>(null);
+	const [feedback, setFeedback] = useState<{
+		tipo: "sucesso" | "erro";
+		mensagem: string;
+	} | null>(null);
 
 	useEffect(() => {
 		if (!carregado) navigate({ to: "/" });
 	}, [carregado, navigate]);
+
+	useEffect(() => {
+		if (feedback) {
+			const timer = setTimeout(() => setFeedback(null), 5000);
+			return () => clearTimeout(timer);
+		}
+	}, [feedback]);
+
+	async function handleImportar(evento: React.ChangeEvent<HTMLInputElement>) {
+		const file = evento.target.files?.[0];
+		if (!file) return;
+
+		if (!file.name.endsWith(".json")) {
+			setFeedback({ tipo: "erro", mensagem: "Selecione um arquivo .json" });
+			evento.target.value = "";
+			return;
+		}
+
+		const resultado = await importarJSON(file);
+		setFeedback({
+			tipo: resultado.sucesso ? "sucesso" : "erro",
+			mensagem: resultado.mensagem,
+		});
+		evento.target.value = "";
+	}
 
 	const pendentes = inscricoes
 		.filter((i) => i.status === Status.PENDENTE)
@@ -73,12 +115,50 @@ function DashboardPage() {
 			title="Dashboard"
 			description="Visão geral das inscrições do Catecumenato (Crisma)"
 			actions={
-				<Button onClick={exportar} variant="secondary">
-					<Download className="h-4 w-4" />
-					Exportar CSV
-				</Button>
+				<div className="flex items-center gap-2">
+					<Button onClick={exportar} variant="secondary" size="sm">
+						<Download className="h-4 w-4" />
+						CSV
+					</Button>
+					<Button
+						onClick={exportarJSON}
+						variant="secondary"
+						size="sm"
+						title="Exportar tudo (JSON)"
+					>
+						<FileDown className="h-4 w-4" />
+						JSON
+					</Button>
+					<Button
+						onClick={() => fileInputRef.current?.click()}
+						variant="secondary"
+						size="sm"
+						title="Importar backup JSON"
+					>
+						<Upload className="h-4 w-4" />
+						Restaurar
+					</Button>
+					<input
+						ref={fileInputRef}
+						type="file"
+						accept=".json"
+						className="hidden"
+						onChange={handleImportar}
+					/>
+				</div>
 			}
 		>
+			{feedback && (
+				<div
+					className={`mb-6 rounded-lg px-4 py-3 text-sm ${
+						feedback.tipo === "sucesso"
+							? "bg-green-50 text-green-800 border border-green-200"
+							: "bg-red-50 text-red-800 border border-red-200"
+					}`}
+				>
+					{feedback.mensagem}
+				</div>
+			)}
 			{/* Stat Cards */}
 			<div className="mb-8 grid gap-4 sm:grid-cols-3">
 				<StatCard
