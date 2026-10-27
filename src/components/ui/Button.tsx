@@ -18,7 +18,7 @@ export const buttonVariants = cva(
 				ghost: "text-ink-2 hover:bg-sand hover:text-ink",
 				dark: "bg-ink text-bg hover:bg-ink-2",
 				danger:
-					"bg-surface text-danger-ink shadow-[inset_0_0_0_1px_rgb(179_38_30/0.35)] hover:bg-danger-soft",
+					"bg-surface text-danger-ink shadow-[inset_0_0_0_1px_color-mix(in_oklab,var(--color-danger)_35%,transparent)] hover:bg-danger-soft",
 				"danger-solid": "bg-danger text-white hover:bg-danger-ink",
 			},
 			size: {

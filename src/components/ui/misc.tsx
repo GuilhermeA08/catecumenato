@@ -103,7 +103,7 @@ export function Segmented<T extends string>({
 							size === "sm" ? "h-8 text-[13px]" : "h-9 text-sm",
 							ativo
 								? (opt.activeClassName ??
-										"bg-surface font-medium text-ink shadow-[0_1px_2px_rgb(20_20_19/0.08)]")
+										"bg-surface font-medium text-ink shadow-thumb")
 								: "text-ink-2 hover:text-ink",
 						)}
 					>

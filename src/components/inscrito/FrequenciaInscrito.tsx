@@ -19,7 +19,7 @@ const OPCOES = [
 		value: StatusPresenca.FALTA_JUSTIFICADA,
 		label: "Justificada",
 		activeClassName:
-			"bg-surface font-medium text-warn-ink shadow-[0_1px_2px_rgb(20_20_19/0.1)]",
+			"bg-surface font-medium text-warn-ink shadow-thumb",
 	},
 	{
 		value: StatusPresenca.AUSENTE,

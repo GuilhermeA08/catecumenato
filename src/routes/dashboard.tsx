@@ -184,11 +184,11 @@ function DashboardPage() {
 						className="flex h-2.5 overflow-hidden rounded-full bg-sand"
 					>
 						<div className="bg-ok" style={{ width: `${pct(dados.concluidos)}%` }} />
-						<div className="bg-[#e3b979]" style={{ width: `${pct(dados.quaseProntos)}%` }} />
+						<div className="bg-warn-mid" style={{ width: `${pct(dados.quaseProntos)}%` }} />
 					</div>
 					<div className="flex flex-wrap gap-x-5 gap-y-1 text-xs text-muted">
 						<Legenda cor="var(--color-ok)">Concluídas ({dados.concluidos})</Legenda>
-						<Legenda cor="#e3b979">Faltam 1–2 campos ({dados.quaseProntos})</Legenda>
+						<Legenda cor="var(--color-warn-mid)">Faltam 1–2 campos ({dados.quaseProntos})</Legenda>
 						<Legenda cor="var(--color-sand)" borda>
 							Faltam 3+ campos ({dados.pendentes - dados.quaseProntos})
 						</Legenda>

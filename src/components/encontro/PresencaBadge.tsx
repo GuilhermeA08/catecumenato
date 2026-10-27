@@ -18,7 +18,7 @@ const TOM: Record<StatusPresenca, BadgeTone> = {
 /** Cores sólidas usadas nas tiras de frequência */
 export const COR_PRESENCA: Record<StatusPresenca, string> = {
 	[StatusPresenca.PRESENTE]: "var(--color-ok)",
-	[StatusPresenca.FALTA_JUSTIFICADA]: "#e3b979",
+	[StatusPresenca.FALTA_JUSTIFICADA]: "var(--color-warn-mid)",
 	[StatusPresenca.AUSENTE]: "var(--color-danger)",
 	[StatusPresenca.PENDENTE]: "var(--color-sand)",
 };

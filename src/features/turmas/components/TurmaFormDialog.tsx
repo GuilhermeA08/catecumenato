@@ -9,14 +9,14 @@ import type { Turma } from "../../../types/turma";
 import { cn } from "../../../utils/cn";
 
 const NOMES_CORES: Record<string, string> = {
-	"#b8552f": "Terracota",
-	"#4a6fa5": "Azul",
-	"#4f7a3a": "Oliva",
-	"#8e6ba8": "Violeta",
-	"#c9862b": "Âmbar",
-	"#2e8585": "Petróleo",
-	"#a64d87": "Magenta",
-	"#6b6a63": "Cinza quente",
+	"#2f5bb7": "Azul",
+	"#c08a2b": "Ouro",
+	"#23798a": "Petróleo",
+	"#4f4fae": "Índigo",
+	"#2f7a4f": "Verde",
+	"#a3486a": "Vinho",
+	"#7a5cb8": "Violeta",
+	"#5d6b82": "Ardósia",
 };
 
 /** Criação (turma ausente) ou edição de turma */
@@ -37,7 +37,7 @@ export function TurmaFormDialog({
 
 	const [nome, setNome] = useState("");
 	const [descricao, setDescricao] = useState("");
-	const [cor, setCor] = useState(CORES_TURMA[0] ?? "#b8552f");
+	const [cor, setCor] = useState(CORES_TURMA[0] ?? "#2f5bb7");
 	const [tentouSalvar, setTentouSalvar] = useState(false);
 
 	useEffect(() => {
