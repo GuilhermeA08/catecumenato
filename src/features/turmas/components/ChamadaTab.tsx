@@ -1,4 +1,12 @@
-import { CalendarDays, CheckCheck, Pencil, Plus, Trash2, Users } from "lucide-react";
+import {
+	CalendarDays,
+	CheckCheck,
+	Pencil,
+	Plus,
+	Trash2,
+	Users,
+	UserX,
+} from "lucide-react";
 import { useEffect, useRef } from "react";
 import { Button } from "../../../components/ui/Button";
 import { Card } from "../../../components/ui/Card";
@@ -119,18 +127,19 @@ export function ChamadaTab({
 					onDefinir={(inscritoId, status) =>
 						definirStatus(selecionado.id, inscritoId, status)
 					}
-					onTodosPresentes={() => {
+					onMarcarRestantes={(status) => {
+						// Preenche só quem ainda não tem marcação
 						const itens = membros
 							.filter(
 								(m) =>
 									statusDe(chamada, selecionado.id, m.id) ===
 									StatusPresenca.PENDENTE,
 							)
-							.map((m) => ({ inscritoId: m.id, status: StatusPresenca.PRESENTE }));
+							.map((m) => ({ inscritoId: m.id, status }));
 						if (itens.length === 0) return;
 						registrarLote(selecionado.id, itens);
 						toast.sucesso(
-							`${plural(itens.length, "membro marcado", "membros marcados")} como presente.`,
+							`${plural(itens.length, "membro marcado", "membros marcados")} com ${status === StatusPresenca.PRESENTE ? "presença" : "falta"}.`,
 						);
 					}}
 				/>
@@ -216,7 +225,7 @@ function CartaoChamada({
 	frequencias,
 	onEditar,
 	onDefinir,
-	onTodosPresentes,
+	onMarcarRestantes,
 	onIrParaMembros,
 }: {
 	encontro: Encontro;
@@ -225,7 +234,7 @@ function CartaoChamada({
 	frequencias: Map<string, FrequenciaMembro>;
 	onEditar: () => void;
 	onDefinir: (inscritoId: string, status: StatusPresenca) => void;
-	onTodosPresentes: () => void;
+	onMarcarRestantes: (status: StatusPresenca) => void;
 	onIrParaMembros: () => void;
 }) {
 	const c = contarChamada(chamada, encontro.id, membros);
@@ -269,20 +278,37 @@ function CartaoChamada({
 				</div>
 				<div className="flex flex-wrap items-center gap-1">
 					{membros.length > 0 && (
-						<Button
-							variant="secondary"
-							size="sm"
-							onClick={onTodosPresentes}
-							disabled={c.pendente === 0}
-							title={
-								c.pendente === 0
-									? "Todos os membros já têm marcação"
-									: "Marca como presente quem ainda não tem marcação"
-							}
-						>
-							<CheckCheck />
-							Marcar todos presentes
-						</Button>
+						<>
+							<Button
+								variant="secondary"
+								size="sm"
+								onClick={() => onMarcarRestantes(StatusPresenca.PRESENTE)}
+								disabled={c.pendente === 0}
+								title={
+									c.pendente === 0
+										? "Todos os membros já têm marcação"
+										: "Marca presença em quem ainda não tem marcação"
+								}
+							>
+								<CheckCheck />
+								{c.pendente === membros.length ? "Todos presentes" : "Restantes presentes"}
+							</Button>
+							<Button
+								variant="secondary"
+								size="sm"
+								onClick={() => onMarcarRestantes(StatusPresenca.AUSENTE)}
+								disabled={c.pendente === 0}
+								title={
+									c.pendente === 0
+										? "Todos os membros já têm marcação"
+										: "Marca falta em quem ainda não tem marcação"
+								}
+								className="text-danger-ink"
+							>
+								<UserX />
+								{c.pendente === membros.length ? "Todos com falta" : "Restantes com falta"}
+							</Button>
+						</>
 					)}
 					<Button
 						variant="ghost"
