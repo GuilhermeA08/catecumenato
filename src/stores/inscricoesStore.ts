@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { gerarId } from "../utils/id";
 import { createJSONStorage, persist } from "zustand/middleware";
 import {
 	exportarCSV,
@@ -55,7 +56,7 @@ export const useInscricoesStore = create<InscricoesState>()(
 
 			adicionarInscricao: (dados) => {
 				const nova = recalcularInscricao({
-					id: crypto.randomUUID(),
+					id: gerarId(),
 					turmaId: dados.turmaId ?? null,
 					crismando: dados.crismando ?? {
 						nome: null,
@@ -139,10 +140,17 @@ export const useInscricoesStore = create<InscricoesState>()(
 				set((state) => ({
 					inscricoes: state.inscricoes.map((inscricao) => {
 						if (inscricao.id !== id) return inscricao;
+						// Sem override, o status volta a ser calculado pela completude
+						if (!override) {
+							return recalcularInscricao({
+								...inscricao,
+								statusOverride: false,
+							});
+						}
 						return {
 							...inscricao,
 							status,
-							statusOverride: override,
+							statusOverride: true,
 							atualizadoEm: new Date().toISOString(),
 						};
 					}),
@@ -152,7 +160,9 @@ export const useInscricoesStore = create<InscricoesState>()(
 			vincularTurma: (id, turmaId) => {
 				set((state) => ({
 					inscricoes: state.inscricoes.map((i) =>
-						i.id === id ? { ...i, turmaId } : i,
+						i.id === id
+							? { ...i, turmaId, atualizadoEm: new Date().toISOString() }
+							: i,
 					),
 				}));
 			},

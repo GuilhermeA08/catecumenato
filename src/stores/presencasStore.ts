@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { gerarId } from "../utils/id";
 import { createJSONStorage, persist } from "zustand/middleware";
 import type { StatusPresenca } from "../types/enums";
 import type { Presenca } from "../types/presenca";
@@ -22,6 +23,8 @@ interface PresencasState {
 		}>,
 	) => void;
 	removerPorEncontro: (encontroId: string) => void;
+	/** Remove presenças do inscrito (todas, ou só dos encontros informados) */
+	removerPorInscrito: (inscritoId: string, encontroIds?: string[]) => void;
 	limpar: () => void;
 
 	// Getters
@@ -56,7 +59,7 @@ export const usePresencasStore = create<PresencasState>()(
 					return existente.id;
 				}
 
-				const id = crypto.randomUUID();
+				const id = gerarId();
 				const nova: Presenca = {
 					id,
 					encontroId,
@@ -72,19 +75,48 @@ export const usePresencasStore = create<PresencasState>()(
 			},
 
 			registrarLote: (encontroId, itens) => {
-				for (const item of itens) {
-					get().definirStatus(
+				// Um único set → uma única gravação no localStorage
+				const agora = new Date().toISOString();
+				set((state) => {
+					const porInscrito = new Map(itens.map((i) => [i.inscritoId, i]));
+					const atualizadas = state.presencas.map((p) => {
+						if (p.encontroId !== encontroId) return p;
+						const item = porInscrito.get(p.inscritoId);
+						if (!item) return p;
+						porInscrito.delete(p.inscritoId);
+						return {
+							...p,
+							status: item.status,
+							observacoes: item.observacoes ?? null,
+							atualizadoEm: agora,
+						};
+					});
+					const novas: Presenca[] = [...porInscrito.values()].map((item) => ({
+						id: gerarId(),
 						encontroId,
-						item.inscritoId,
-						item.status,
-						item.observacoes ?? null,
-					);
-				}
+						inscritoId: item.inscritoId,
+						status: item.status,
+						observacoes: item.observacoes ?? null,
+						registradoEm: agora,
+						atualizadoEm: agora,
+					}));
+					return { presencas: [...atualizadas, ...novas] };
+				});
 			},
 
 			removerPorEncontro: (encontroId) => {
 				set((state) => ({
 					presencas: state.presencas.filter((p) => p.encontroId !== encontroId),
+				}));
+			},
+
+			removerPorInscrito: (inscritoId, encontroIds) => {
+				set((state) => ({
+					presencas: state.presencas.filter(
+						(p) =>
+							p.inscritoId !== inscritoId ||
+							(encontroIds !== undefined && !encontroIds.includes(p.encontroId)),
+					),
 				}));
 			},
 

@@ -1,17 +1,20 @@
 import { create } from "zustand";
+import { gerarId } from "../utils/id";
 import { createJSONStorage, persist } from "zustand/middleware";
 import type { Turma } from "../types/turma";
 
-const CORES_PADRAO = [
-	"#3b82f6", // blue
-	"#10b981", // emerald
-	"#f59e0b", // amber
-	"#ef4444", // red
-	"#8b5cf6", // violet
-	"#ec4899", // pink
-	"#14b8a6", // teal
-	"#f97316", // orange
+/** Paleta de cores das turmas (tons quentes, distintos também em luminosidade) */
+export const CORES_TURMA = [
+	"#b8552f", // terracota
+	"#4a6fa5", // azul
+	"#4f7a3a", // oliva
+	"#8e6ba8", // violeta
+	"#c9862b", // âmbar
+	"#2e8585", // petróleo
+	"#a64d87", // magenta
+	"#6b6a63", // cinza quente
 ];
+const CORES_PADRAO = CORES_TURMA;
 
 interface TurmasState {
 	turmas: Turma[];
@@ -40,7 +43,7 @@ export const useTurmasStore = create<TurmasState>()(
 			turmas: [],
 
 			criarTurma: ({ nome, descricao, cor }) => {
-				const id = crypto.randomUUID();
+				const id = gerarId();
 				const novaTurma: Turma = {
 					id,
 					nome: nome.trim(),

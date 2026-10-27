@@ -22,9 +22,10 @@ export function formatarTelefone(telefone: string | null | undefined): string {
 export function formatarTelefoneWhatsApp(
 	telefone: string | null | undefined,
 ): string {
-	const limpo = limparTelefone(telefone);
+	// Remove zeros de prefixo de operadora/DDD (ex.: "084...")
+	const limpo = limparTelefone(telefone).replace(/^0+/, "");
 	if (!limpo) return "";
-	// Adiciona 55 (Brasil) se ainda não tiver
+	// Já tem código do país (55 + DDD + número)
 	if (limpo.startsWith("55") && limpo.length >= 12) {
 		return limpo;
 	}

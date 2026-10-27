@@ -1,110 +1,196 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { ArrowRight, Church, FileText, UserPlus } from "lucide-react";
+import { ArrowRight, Download, FileText, Trash2, UserPlus } from "lucide-react";
+import { useRef, useState } from "react";
 import { CSVUploader } from "../components/csv/CSVUploader";
 import { PageContainer } from "../components/layout/PageContainer";
 import { Button } from "../components/ui/Button";
+import { ButtonLink } from "../components/ui/ButtonLink";
+import { Card, CardContent, CardHeader } from "../components/ui/Card";
+import { confirmar } from "../components/ui/Dialog";
+import { toast } from "../components/ui/Toast";
+import { exportarTemplate } from "../features/inscricoes/services/csvService";
+import {
+	exportarJSON,
+	lerBackupJSON,
+	obterUltimoBackup,
+	restaurarBackup,
+} from "../features/inscricoes/services/jsonService";
 import { exportarFichaEmBrancoPDF } from "../features/inscricoes/services/pdfService";
+import { limparTudo } from "../stores/acoes";
 import { useInscricoesStore } from "../stores/inscricoesStore";
+import { useTurmasStore } from "../stores/turmasStore";
 
-export const Route = createFileRoute("/")({ component: HomePage });
+export const Route = createFileRoute("/")({ component: ImportarPage });
 
-function HomePage() {
+function formatarData(iso: string | null): string | null {
+	return iso ? new Date(iso).toLocaleDateString("pt-BR") : null;
+}
+
+function ImportarPage() {
 	const navigate = useNavigate();
-	const { carregado, getTotais, importadoEm } = useInscricoesStore();
-	const totais = getTotais();
+	const inscricoes = useInscricoesStore((s) => s.inscricoes);
+	const exportarCSV = useInscricoesStore((s) => s.exportar);
+	const totalTurmas = useTurmasStore((s) => s.turmas.length);
+	const temDados = inscricoes.length > 0;
+	const backupRef = useRef<HTMLInputElement>(null);
+	const [ultimoBackup, setUltimoBackup] = useState(obterUltimoBackup);
+
+	function baixarBackup() {
+		exportarJSON();
+		setUltimoBackup(obterUltimoBackup());
+		toast.sucesso("Backup baixado.");
+	}
+
+	async function restaurar(file: File) {
+		if (!file.name.toLowerCase().endsWith(".json")) {
+			toast.erro("Escolha um arquivo de backup .json");
+			return;
+		}
+		const leitura = await lerBackupJSON(file);
+		if (!leitura.sucesso) {
+			toast.erro(leitura.mensagem);
+			return;
+		}
+		const { dados } = leitura;
+		const exportadoEm = formatarData(dados.exportadoEm);
+		const ok = await confirmar({
+			titulo: "Restaurar backup?",
+			descricao: (
+				<>
+					O backup{exportadoEm && ` de ${exportadoEm}`} tem {dados.inscricoes.length}{" "}
+					inscrições, {dados.turmas.length} turmas e {dados.encontros.length}{" "}
+					encontros. <strong>Todos os dados atuais serão substituídos.</strong>
+				</>
+			),
+			confirmar: "Restaurar",
+			perigo: temDados,
+		});
+		if (!ok) return;
+		restaurarBackup(dados);
+		setUltimoBackup(obterUltimoBackup());
+		toast.sucesso("Backup restaurado.");
+		navigate({ to: "/dashboard" });
+	}
+
+	async function apagarTudo() {
+		const ok = await confirmar({
+			titulo: "Apagar todos os dados?",
+			descricao: `Isso remove ${inscricoes.length} inscrições, ${totalTurmas} turmas, encontros e presenças deste navegador. Não pode ser desfeito — baixe um backup antes.`,
+			confirmar: "Apagar tudo",
+			perigo: true,
+		});
+		if (!ok) return;
+		limparTudo();
+		toast.info("Todos os dados foram apagados.");
+	}
 
 	return (
-		<PageContainer>
-			<div className="mx-auto max-w-2xl">
-				{/* Hero */}
-				<div className="mb-8 text-center">
-					<div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-blue-600 shadow-lg">
-						<Church className="h-8 w-8 text-white" />
+		<PageContainer
+			width="narrow"
+			title={temDados ? "Importar e backup" : "Bem-vindo ao Catecumenato"}
+			description={
+				temDados
+					? "Os dados ficam salvos apenas neste navegador. Faça backup com frequência para não perder nada."
+					: "Organize as inscrições da Crisma, as turmas e a frequência nos encontros. Comece importando a planilha de inscrições ou cadastrando manualmente."
+			}
+			actions={
+				temDados && (
+					<ButtonLink to="/dashboard" variant="secondary">
+						Ir para o painel
+						<ArrowRight />
+					</ButtonLink>
+				)
+			}
+		>
+			<Card>
+				<CardHeader title="Importar planilha de inscrições" />
+				<CardContent className="flex flex-col gap-4">
+					<CSVUploader onConcluido={() => navigate({ to: "/dashboard" })} />
+					<div className="flex flex-wrap gap-2">
+						<Button variant="secondary" size="sm" onClick={exportarTemplate}>
+							<Download />
+							Baixar modelo CSV
+						</Button>
+						<ButtonLink to="/inscritos/novo" variant="secondary" size="sm">
+							<UserPlus />
+							Cadastrar manualmente
+						</ButtonLink>
+						<Button variant="secondary" size="sm" onClick={exportarFichaEmBrancoPDF}>
+							<FileText />
+							Ficha em branco (PDF)
+						</Button>
 					</div>
-					<h1 className="text-3xl font-bold text-gray-900">
-						Sistema de Crisma
-					</h1>
-					<p className="mt-2 text-gray-500">
-						Diocese de Santa Luzia de Mossoró · Paróquia de Santana
-					</p>
-				</div>
+				</CardContent>
+			</Card>
 
-				{/* Dados na memória */}
-				{carregado && totais.total > 0 && (
-					<div className="mb-6 rounded-xl border border-blue-200 bg-blue-50 p-5">
-						<div className="flex items-center justify-between gap-4">
-							<div>
-								<p className="font-semibold text-blue-900">
-									{totais.total} inscrição{totais.total > 1 ? "ões" : ""}{" "}
-									carregada{totais.total > 1 ? "s" : ""}
-								</p>
-								<p className="text-sm text-blue-700">
-									{totais.pendentes} pendente{totais.pendentes !== 1 ? "s" : ""}{" "}
-									· {totais.concluidos} concluído
-									{totais.concluidos !== 1 ? "s" : ""}
-									{importadoEm &&
-										` · importado em ${new Date(importadoEm).toLocaleDateString("pt-BR")}`}
-								</p>
-							</div>
-							<Button onClick={() => navigate({ to: "/dashboard" })}>
-								Ver Dashboard
-								<ArrowRight className="h-4 w-4" />
+			<Card>
+				<CardHeader
+					title="Backup completo"
+					description={
+						<>
+							Inclui inscritos, turmas, encontros e presenças.{" "}
+							{ultimoBackup
+								? `Último backup em ${formatarData(ultimoBackup)}.`
+								: temDados && "Nenhum backup feito ainda."}
+						</>
+					}
+				/>
+				<CardContent className="flex flex-col gap-4">
+					<div className="flex flex-wrap gap-2">
+						<Button variant="dark" onClick={baixarBackup} disabled={!temDados}>
+							Baixar backup (.json)
+						</Button>
+						<Button variant="secondary" onClick={() => backupRef.current?.click()}>
+							Restaurar backup
+						</Button>
+						<Button variant="secondary" onClick={exportarCSV} disabled={!temDados}>
+							Exportar CSV
+						</Button>
+						<input
+							ref={backupRef}
+							type="file"
+							accept=".json,application/json"
+							className="sr-only"
+							tabIndex={-1}
+							aria-hidden="true"
+							onChange={(e) => {
+								const file = e.target.files?.[0];
+								e.target.value = "";
+								if (file) void restaurar(file);
+							}}
+						/>
+					</div>
+					{temDados && (
+						<div className="flex flex-wrap items-center justify-between gap-3 border-t border-line pt-4">
+							<span className="text-[13px] text-muted">
+								Apagar todos os dados deste navegador
+							</span>
+							<Button variant="danger" size="sm" onClick={apagarTudo}>
+								<Trash2 />
+								Apagar tudo…
 							</Button>
 						</div>
-					</div>
-				)}
+					)}
+				</CardContent>
+			</Card>
 
-				{/* Card de Upload */}
-				<div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
-					<h2 className="mb-1 text-lg font-semibold text-gray-900">
-						{carregado ? "Importar novo arquivo" : "Importar inscrições"}
-					</h2>
-					<p className="mb-5 text-sm text-gray-500">
-						Importe um arquivo CSV com as inscrições do Catecumenato (Crisma)
-					</p>
-					<CSVUploader />
-					<div className="mt-4 flex items-center gap-3">
-						<hr className="flex-1 border-gray-200" />
-						<span className="text-xs text-gray-400">ou</span>
-						<hr className="flex-1 border-gray-200" />
-					</div>
-					<div className="mt-4 flex items-center justify-center gap-3">
-						<Link to="/inscritos/novo">
-							<button
-								type="button"
-								className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 hover:border-gray-400"
-							>
-								<UserPlus className="h-4 w-4" />
-								Cadastrar manualmente
-							</button>
-						</Link>
-						<button
-							type="button"
-							onClick={exportarFichaEmBrancoPDF}
-							className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 hover:border-gray-400"
-						>
-							<FileText className="h-4 w-4" />
-							Ficha em branco
-						</button>
-					</div>
-				</div>
-
-				{/* Info */}
-				<div className="mt-6 rounded-xl border border-gray-200 bg-white p-5">
-					<h3 className="mb-3 font-semibold text-gray-700">Como usar</h3>
-					<ol className="list-decimal space-y-2 pl-5 text-sm text-gray-600">
-						<li>Baixe o modelo CSV e preencha com os dados dos inscritos</li>
-						<li>Importe o arquivo CSV aqui</li>
-						<li>Visualize o dashboard e identifique os pendentes</li>
-						<li>
-							Use o botão WhatsApp para avisar inscritos com dados incompletos
-						</li>
-						<li>
-							Edite os dados conforme necessário e exporte o CSV atualizado
-						</li>
-					</ol>
-				</div>
-			</div>
+			{!temDados && (
+				<Card>
+					<CardHeader title="Como usar" />
+					<CardContent>
+						<ol className="m-0 flex list-decimal flex-col gap-2 pl-5 text-ink-2">
+							<li>Baixe o modelo CSV e preencha com os dados dos inscritos.</li>
+							<li>Importe o arquivo aqui e revise a prévia.</li>
+							<li>No painel, veja quem está com a ficha incompleta.</li>
+							<li>Use o WhatsApp para pedir os dados que faltam.</li>
+							<li>
+								Crie as <Link to="/turmas" className="text-accent">turmas</Link>,
+								registre os encontros e faça a chamada.
+							</li>
+						</ol>
+					</CardContent>
+				</Card>
+			)}
 		</PageContainer>
 	);
 }

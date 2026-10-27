@@ -1,45 +1,39 @@
-import { AlertCircle, MessageCircle } from "lucide-react";
+import { MessageCircle } from "lucide-react";
 import { abrirWhatsApp } from "../../features/inscricoes/services/whatsappService";
 import type { Inscricao } from "../../types/inscricao";
-import { Button } from "../ui/Button";
+import { Button, type ButtonVariantProps } from "../ui/Button";
 
 interface WhatsAppButtonProps {
 	inscricao: Inscricao;
-	size?: "sm" | "md" | "lg";
-	showLabel?: boolean;
+	/** Texto do botão; sem ele vira botão só de ícone */
+	label?: string;
+	variant?: ButtonVariantProps["variant"];
+	size?: ButtonVariantProps["size"];
 }
 
 export function WhatsAppButton({
 	inscricao,
-	size = "md",
-	showLabel = true,
+	label,
+	variant = "secondary",
+	size,
 }: WhatsAppButtonProps) {
+	const nome = inscricao.crismando.nome ?? "inscrito";
 	const temCelular = !!inscricao.crismando.celular?.trim();
-
-	if (!temCelular) {
-		return (
-			<Button
-				variant="secondary"
-				size={size}
-				disabled
-				title="Celular não cadastrado"
-				className="cursor-not-allowed"
-			>
-				<AlertCircle className="h-4 w-4 text-gray-400" />
-				{showLabel && "Sem celular"}
-			</Button>
-		);
-	}
+	const titulo = temCelular
+		? `Enviar WhatsApp para ${nome}`
+		: "Celular não cadastrado";
 
 	return (
 		<Button
-			variant="whatsapp"
-			size={size}
+			variant={variant}
+			size={size ?? (label ? "md" : "icon-sm")}
 			onClick={() => abrirWhatsApp(inscricao)}
-			title={`Enviar WhatsApp para ${inscricao.crismando.nome}`}
+			disabled={!temCelular}
+			title={titulo}
+			aria-label={label ? undefined : titulo}
 		>
-			<MessageCircle className="h-4 w-4" />
-			{showLabel && "WhatsApp"}
+			<MessageCircle />
+			{label}
 		</Button>
 	);
 }

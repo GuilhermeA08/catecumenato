@@ -33,17 +33,30 @@ export function mascaraTelefone(valor: string): string {
  */
 export function parsearDataBR(valor: string | null | undefined): Date | null {
 	if (!valor) return null;
-	// Tenta DD/MM/AAAA
-	const match = valor.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
-	if (match) {
-		const [, dia, mes, ano] = match;
-		const d = new Date(Number(ano), Number(mes) - 1, Number(dia));
-		if (!Number.isNaN(d.getTime())) return d;
-	}
-	// Tenta ISO AAAA-MM-DD
-	const iso = new Date(valor);
-	if (!Number.isNaN(iso.getTime())) return iso;
+	const texto = valor.trim();
+
+	// D/M/AAAA ou DD/MM/AAAA (também aceita "-" e "." como separador)
+	const br = texto.match(/^(\d{1,2})[/.-](\d{1,2})[/.-](\d{4})$/);
+	if (br) return criarDataLocal(Number(br[3]), Number(br[2]), Number(br[1]));
+
+	// ISO AAAA-MM-DD (com ou sem horário) — interpretado no fuso local
+	const iso = texto.match(/^(\d{4})-(\d{2})-(\d{2})(?:[T\s].*)?$/);
+	if (iso) return criarDataLocal(Number(iso[1]), Number(iso[2]), Number(iso[3]));
+
 	return null;
+}
+
+// Cria a data no fuso local e rejeita datas inexistentes (ex.: 31/02)
+function criarDataLocal(ano: number, mes: number, dia: number): Date | null {
+	const d = new Date(ano, mes - 1, dia);
+	if (
+		d.getFullYear() !== ano ||
+		d.getMonth() !== mes - 1 ||
+		d.getDate() !== dia
+	) {
+		return null;
+	}
+	return d;
 }
 
 /**

@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { gerarId } from "../utils/id";
 import { createJSONStorage, persist } from "zustand/middleware";
 import type { Encontro, EncontroFormData } from "../types/encontro";
 import { StatusPresenca } from "../types/enums";
@@ -26,7 +27,7 @@ export const useEncontrosStore = create<EncontrosState>()(
 
 			criarEncontro: (dados) => {
 				const agora = new Date().toISOString();
-				const id = crypto.randomUUID();
+				const id = gerarId();
 				const encontro: Encontro = {
 					id,
 					turmaId: dados.turmaId,

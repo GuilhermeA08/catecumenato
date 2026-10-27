@@ -1,202 +1,275 @@
-import { AlertCircle, CheckCircle, FileText, Upload } from "lucide-react";
+import { Upload } from "lucide-react";
 import { useRef, useState } from "react";
+import { parseCSV } from "../../features/inscricoes/services/csvService";
 import {
-	exportarTemplate,
-	parseCSV,
-} from "../../features/inscricoes/services/csvService";
+	aplicarImportacao,
+	type PreviaImportacao,
+	previaImportacao,
+} from "../../stores/acoes";
 import { useInscricoesStore } from "../../stores/inscricoesStore";
 import { useTurmasStore } from "../../stores/turmasStore";
+import type { Inscricao } from "../../types/inscricao";
 import { cn } from "../../utils/cn";
-import { Button } from "../ui/Button";
+import { Button, Spinner } from "../ui/Button";
+import { toast } from "../ui/Toast";
 
-export function CSVUploader() {
+interface Leitura {
+	arquivo: string;
+	inscricoes: Inscricao[];
+	erros: string[];
+	previa: PreviaImportacao;
+	turmasNovas: string[];
+}
+
+/** Arrastar/soltar CSV → prévia → mesclar ou substituir */
+export function CSVUploader({ onConcluido }: { onConcluido?: () => void }) {
 	const inputRef = useRef<HTMLInputElement>(null);
-	const [isDragging, setIsDragging] = useState(false);
-	const [loading, setLoading] = useState(false);
-	const [resultado, setResultado] = useState<{
-		total: number;
-		erros: string[];
-	} | null>(null);
-	const setInscricoes = useInscricoesStore((s) => s.setInscricoes);
-	const { criarTurma } = useTurmasStore();
-
-	function resolverTurma(nome: string): string {
-		const nomeNorm = nome.trim().toLowerCase();
-
-		// 1. Busca no estado ATUAL do store (estado fresco, não o closure)
-		const turmasAtuais = useTurmasStore.getState().turmas;
-		const existente = turmasAtuais.find(
-			(t) => t.nome.trim().toLowerCase() === nomeNorm,
-		);
-		if (existente) return existente.id;
-
-		// 2. Cria nova turma e retorna o id
-		return criarTurma({ nome: nome.trim() });
-	}
+	const [arrastando, setArrastando] = useState(false);
+	const [lendo, setLendo] = useState(false);
+	const [leitura, setLeitura] = useState<Leitura | null>(null);
+	const [modo, setModo] = useState<"mesclar" | "substituir">("mesclar");
+	const existentes = useInscricoesStore((s) => s.inscricoes);
 
 	async function processarArquivo(file: File) {
-		if (!file.name.endsWith(".csv")) {
-			setResultado({ total: 0, erros: ["O arquivo deve ser um CSV (.csv)"] });
+		if (!file.name.toLowerCase().endsWith(".csv")) {
+			toast.erro("Escolha um arquivo .csv");
+			return;
+		}
+		setLendo(true);
+
+		// Resolve turmas pelo nome sem criá-las ainda (só ao confirmar)
+		const turmasAtuais = useTurmasStore.getState().turmas;
+		const turmasNovas = new Map<string, string>();
+		const resolverTurma = (nome: string) => {
+			const norm = nome.trim().toLowerCase();
+			const existente = turmasAtuais.find((t) => t.nome.trim().toLowerCase() === norm);
+			if (existente) return existente.id;
+			const chave = `nova:${norm}`;
+			if (!turmasNovas.has(chave)) turmasNovas.set(chave, nome.trim());
+			return chave;
+		};
+
+		const { inscricoes, erros } = await parseCSV(file, resolverTurma);
+		setLendo(false);
+
+		if (inscricoes.length === 0) {
+			toast.erro(
+				erros[0] ?? "Nenhuma inscrição encontrada no arquivo. Confira o modelo CSV.",
+			);
 			return;
 		}
 
-		setLoading(true);
-		setResultado(null);
-
-		const { inscricoes, erros } = await parseCSV(file, resolverTurma);
-		setInscricoes(inscricoes);
-		setResultado({ total: inscricoes.length, erros });
-		setLoading(false);
+		setModo(existentes.length > 0 ? "mesclar" : "substituir");
+		setLeitura({
+			arquivo: file.name,
+			inscricoes,
+			erros,
+			previa: previaImportacao(existentes, inscricoes),
+			turmasNovas: [...turmasNovas.values()],
+		});
 	}
 
-	function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
-		const file = e.target.files?.[0];
-		if (file) processarArquivo(file);
+	function confirmar() {
+		if (!leitura) return;
+		// Cria as turmas novas e troca os ids provisórios
+		const criadas = new Map<string, string>();
+		for (const nome of leitura.turmasNovas) {
+			criadas.set(
+				`nova:${nome.toLowerCase()}`,
+				useTurmasStore.getState().criarTurma({ nome }),
+			);
+		}
+		const inscricoes = leitura.inscricoes.map((i) =>
+			i.turmaId?.startsWith("nova:")
+				? { ...i, turmaId: criadas.get(i.turmaId) ?? null }
+				: i,
+		);
+		aplicarImportacao(inscricoes, modo);
+		const total = leitura.previa.novos + leitura.previa.atualizados;
+		toast.sucesso(
+			`${total} inscrição${total !== 1 ? "ões" : ""} importada${total !== 1 ? "s" : ""}.`,
+		);
+		setLeitura(null);
+		onConcluido?.();
 	}
 
-	function handleDrop(e: React.DragEvent<HTMLButtonElement>) {
-		e.preventDefault();
-		setIsDragging(false);
-		const file = e.dataTransfer.files[0];
-		if (file) processarArquivo(file);
+	if (leitura) {
+		const { previa } = leitura;
+		const substituir = modo === "substituir";
+		const total = previa.novos + previa.atualizados;
+		return (
+			<section
+				aria-label="Prévia da importação"
+				className="flex flex-col gap-4 animate-fade-in"
+			>
+				<div className="flex flex-wrap items-baseline justify-between gap-3">
+					<h3 className="font-serif text-lg font-medium break-all">{leitura.arquivo}</h3>
+					<span className="text-[13px] text-muted">
+						{leitura.inscricoes.length + leitura.erros.length} linhas lidas
+					</span>
+				</div>
+				<div className="grid grid-cols-[repeat(auto-fit,minmax(150px,1fr))] gap-2.5">
+					{existentes.length > 0 && (
+						<Numero valor={previa.atualizados} texto="já existem (serão atualizados)" />
+					)}
+					<Numero
+						valor={existentes.length > 0 ? previa.novos : previa.novos + previa.atualizados}
+						texto="novos inscritos"
+					/>
+					{previa.ignorados + leitura.erros.length > 0 && (
+						<Numero
+							valor={previa.ignorados + leitura.erros.length}
+							texto="linhas ignoradas (sem nome ou com erro)"
+							alerta
+						/>
+					)}
+				</div>
+				{leitura.turmasNovas.length > 0 && (
+					<p className="text-[13px] text-muted">
+						Turmas que serão criadas: {leitura.turmasNovas.join(", ")}
+					</p>
+				)}
+
+				{existentes.length > 0 && (
+					<fieldset className="flex flex-col gap-2">
+						<legend className="mb-2 font-medium">Como aplicar</legend>
+						<OpcaoModo
+							ativo={modo === "mesclar"}
+							onSelect={() => setModo("mesclar")}
+							titulo="Mesclar"
+						>
+							Atualiza quem já existe e adiciona os novos. Presenças e turmas são
+							mantidas.
+						</OpcaoModo>
+						<OpcaoModo
+							ativo={modo === "substituir"}
+							onSelect={() => setModo("substituir")}
+							titulo="Substituir tudo"
+						>
+							Apaga os {existentes.length} inscritos atuais e as presenças ligadas a
+							eles.
+						</OpcaoModo>
+					</fieldset>
+				)}
+
+				<div className="flex flex-wrap justify-end gap-2">
+					<Button variant="secondary" onClick={() => setLeitura(null)}>
+						Cancelar
+					</Button>
+					<Button
+						variant={substituir && existentes.length > 0 ? "danger-solid" : "primary"}
+						onClick={confirmar}
+					>
+						{substituir && existentes.length > 0
+							? `Substituir por ${total}`
+							: `Importar ${total} inscriç${total !== 1 ? "ões" : "ão"}`}
+					</Button>
+				</div>
+			</section>
+		);
 	}
 
 	return (
-		<div className="flex flex-col gap-4">
-			<button
-				type="button"
-				onKeyDown={(e) => {
-					if (e.key === "Enter" || e.key === " ") inputRef.current?.click();
-				}}
-				onDragOver={(e) => {
-					e.preventDefault();
-					setIsDragging(true);
-				}}
-				onDragLeave={() => setIsDragging(false)}
-				onDrop={handleDrop}
-				onClick={() => inputRef.current?.click()}
-				className={cn(
-					"flex w-full cursor-pointer flex-col items-center justify-center gap-3 rounded-2xl border-2 border-dashed p-10",
-					"transition-colors duration-150",
-					isDragging
-						? "border-blue-400 bg-blue-50"
-						: "border-gray-300 bg-gray-50 hover:border-gray-400 hover:bg-gray-100",
-				)}
-			>
-				<div
-					className={cn(
-						"flex h-14 w-14 items-center justify-center rounded-full",
-						isDragging ? "bg-blue-100" : "bg-white shadow",
-					)}
-				>
-					<Upload
-						className={cn(
-							"h-6 w-6",
-							isDragging ? "text-blue-500" : "text-gray-400",
-						)}
-					/>
-				</div>
-				<div className="text-center">
-					<p className="font-semibold text-gray-700">
-						{isDragging
-							? "Solte o arquivo aqui"
-							: "Arraste e solte ou clique para selecionar"}
-					</p>
-					<p className="mt-1 text-sm text-gray-500">
-						Apenas arquivos .CSV são aceitos
-					</p>
-				</div>
-				<input
-					ref={inputRef}
-					type="file"
-					accept=".csv"
-					className="hidden"
-					onChange={handleFileChange}
-					onClick={(e) => {
-						(e.target as HTMLInputElement).value = "";
-					}}
-				/>
-			</button>
-
-			{loading && (
-				<div className="flex items-center gap-3 rounded-lg border border-blue-200 bg-blue-50 p-4">
-					<svg
-						className="h-5 w-5 animate-spin text-blue-500"
-						viewBox="0 0 24 24"
-						fill="none"
-						aria-label="Carregando"
-						role="img"
-					>
-						<circle
-							className="opacity-25"
-							cx="12"
-							cy="12"
-							r="10"
-							stroke="currentColor"
-							strokeWidth="4"
-						/>
-						<path
-							className="opacity-75"
-							fill="currentColor"
-							d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
-						/>
-					</svg>
-					<span className="text-sm text-blue-700">Processando arquivo...</span>
-				</div>
+		<label
+			onDragOver={(e) => {
+				e.preventDefault();
+				setArrastando(true);
+			}}
+			onDragLeave={() => setArrastando(false)}
+			onDrop={(e) => {
+				e.preventDefault();
+				setArrastando(false);
+				const file = e.dataTransfer.files[0];
+				if (file) void processarArquivo(file);
+			}}
+			className={cn(
+				"flex cursor-pointer flex-col items-center gap-2.5 rounded-[14px] border-[1.5px] border-dashed px-5 py-9 text-center transition-colors",
+				"focus-within:border-accent focus-within:ring-3 focus-within:ring-accent/15",
+				arrastando
+					? "border-accent bg-accent-soft/50"
+					: "border-faint/70 bg-bg hover:border-accent/60",
 			)}
-
-			{resultado && (
-				<div className="flex flex-col gap-3">
-					{resultado.total > 0 && (
-						<div className="flex items-center gap-3 rounded-lg border border-green-200 bg-green-50 p-4">
-							<CheckCircle className="h-5 w-5 shrink-0 text-green-600" />
-							<div>
-								<p className="text-sm font-medium text-green-800">
-									{resultado.total} inscrição{resultado.total > 1 ? "ões" : ""}{" "}
-									importada{resultado.total > 1 ? "s" : ""} com sucesso!
-								</p>
-								{resultado.erros.length > 0 && (
-									<p className="text-xs text-green-700 mt-0.5">
-										{resultado.erros.length} linha(s) com erro foram ignoradas.
-									</p>
-								)}
-							</div>
-						</div>
-					)}
-					{resultado.erros.length > 0 && resultado.total === 0 && (
-						<div className="flex items-start gap-3 rounded-lg border border-red-200 bg-red-50 p-4">
-							<AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-red-600" />
-							<div>
-								<p className="text-sm font-medium text-red-800">
-									Erro ao processar o arquivo
-								</p>
-								<ul className="mt-1 list-disc pl-4">
-									{resultado.erros.slice(0, 5).map((e) => (
-										<li key={e} className="text-xs text-red-700">
-											{e}
-										</li>
-									))}
-								</ul>
-							</div>
-						</div>
-					)}
-				</div>
+		>
+			{lendo ? (
+				<Spinner className="size-8 text-accent" />
+			) : (
+				<Upload className="size-8 text-accent" strokeWidth={1.6} aria-hidden="true" />
 			)}
+			<span className="text-[15px] font-medium">
+				{lendo
+					? "Lendo arquivo…"
+					: arrastando
+						? "Solte o arquivo aqui"
+						: "Arraste o arquivo CSV aqui ou clique para escolher"}
+			</span>
+			<span className="text-[13px] text-muted">
+				Você poderá revisar antes de aplicar qualquer mudança
+			</span>
+			<input
+				ref={inputRef}
+				type="file"
+				accept=".csv,text/csv"
+				className="sr-only"
+				onChange={(e) => {
+					const file = e.target.files?.[0];
+					e.target.value = "";
+					if (file) void processarArquivo(file);
+				}}
+			/>
+		</label>
+	);
+}
 
-			<div className="flex items-center gap-3 rounded-lg border border-gray-200 bg-gray-50 p-4">
-				<FileText className="h-5 w-5 shrink-0 text-gray-400" />
-				<div className="flex-1">
-					<p className="text-sm font-medium text-gray-700">
-						Precisa de um modelo?
-					</p>
-					<p className="text-xs text-gray-500">
-						Baixe o CSV modelo com todas as colunas já configuradas
-					</p>
-				</div>
-				<Button variant="secondary" size="sm" onClick={exportarTemplate}>
-					Baixar modelo
-				</Button>
+function Numero({
+	valor,
+	texto,
+	alerta,
+}: {
+	valor: number;
+	texto: string;
+	alerta?: boolean;
+}) {
+	return (
+		<div className={cn("rounded-[10px] px-3.5 py-3", alerta ? "bg-danger-soft" : "bg-sidebar")}>
+			<div className={cn("font-serif text-2xl tabular-nums", alerta && "text-danger-ink")}>
+				{valor}
 			</div>
+			<div className="text-xs text-muted">{texto}</div>
 		</div>
+	);
+}
+
+function OpcaoModo({
+	ativo,
+	onSelect,
+	titulo,
+	children,
+}: {
+	ativo: boolean;
+	onSelect: () => void;
+	titulo: string;
+	children: React.ReactNode;
+}) {
+	return (
+		<label
+			className={cn(
+				"flex cursor-pointer items-start gap-2.5 rounded-[10px] px-3.5 py-3 transition-colors",
+				ativo
+					? "shadow-[inset_0_0_0_1.5px_var(--color-accent)]"
+					: "shadow-[inset_0_0_0_1px_var(--color-line-strong)] hover:bg-sidebar",
+			)}
+		>
+			<input
+				type="radio"
+				name="modo-importacao"
+				checked={ativo}
+				onChange={onSelect}
+				className="mt-1 accent-accent"
+			/>
+			<span>
+				<span className="font-medium">{titulo}</span>
+				<span className="block text-[13px] text-muted">{children}</span>
+			</span>
+		</label>
 	);
 }

@@ -1,46 +1,28 @@
-import { CheckCircle2, Clock3, OctagonX, ShieldCheck } from "lucide-react";
 import { StatusPresenca } from "../../types/enums";
-import { Badge } from "../ui/Badge";
+import { Badge, type BadgeTone } from "../ui/Badge";
 
-interface PresencaBadgeProps {
-	status: StatusPresenca;
-	size?: "sm" | "md";
-}
+export const ROTULO_PRESENCA: Record<StatusPresenca, string> = {
+	[StatusPresenca.PRESENTE]: "Presente",
+	[StatusPresenca.FALTA_JUSTIFICADA]: "Justificada",
+	[StatusPresenca.AUSENTE]: "Falta",
+	[StatusPresenca.PENDENTE]: "Sem marcação",
+};
 
-export function PresencaBadge({ status, size = "md" }: PresencaBadgeProps) {
-	const classes = size === "sm" ? "text-xs" : "";
+const TOM: Record<StatusPresenca, BadgeTone> = {
+	[StatusPresenca.PRESENTE]: "ok",
+	[StatusPresenca.FALTA_JUSTIFICADA]: "warn",
+	[StatusPresenca.AUSENTE]: "danger",
+	[StatusPresenca.PENDENTE]: "neutral",
+};
 
-	if (status === StatusPresenca.PRESENTE) {
-		return (
-			<Badge variant="success" className={classes}>
-				<CheckCircle2 className="mr-1 h-3 w-3" />
-				Presente
-			</Badge>
-		);
-	}
+/** Cores sólidas usadas nas tiras de frequência */
+export const COR_PRESENCA: Record<StatusPresenca, string> = {
+	[StatusPresenca.PRESENTE]: "var(--color-ok)",
+	[StatusPresenca.FALTA_JUSTIFICADA]: "#e3b979",
+	[StatusPresenca.AUSENTE]: "var(--color-danger)",
+	[StatusPresenca.PENDENTE]: "var(--color-sand)",
+};
 
-	if (status === StatusPresenca.FALTA_JUSTIFICADA) {
-		return (
-			<Badge variant="default" className={classes}>
-				<ShieldCheck className="mr-1 h-3 w-3" />
-				Justificada
-			</Badge>
-		);
-	}
-
-	if (status === StatusPresenca.AUSENTE) {
-		return (
-			<Badge variant="danger" className={classes}>
-				<OctagonX className="mr-1 h-3 w-3" />
-				Ausente
-			</Badge>
-		);
-	}
-
-	return (
-		<Badge variant="warning" className={classes}>
-			<Clock3 className="mr-1 h-3 w-3" />
-			Pendente
-		</Badge>
-	);
+export function PresencaBadge({ status }: { status: StatusPresenca }) {
+	return <Badge tone={TOM[status]}>{ROTULO_PRESENCA[status]}</Badge>;
 }

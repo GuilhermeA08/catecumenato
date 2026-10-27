@@ -6,8 +6,9 @@ import type { Encontro } from "../../../types/encontro";
 import type { Inscricao } from "../../../types/inscricao";
 import type { Presenca } from "../../../types/presenca";
 import type { Turma } from "../../../types/turma";
+import { recalcularInscricao } from "./csvService";
 
-interface DadosExportacao {
+export interface DadosExportacao {
 	versao: number;
 	exportadoEm: string;
 	turmas: Turma[];
@@ -46,58 +47,82 @@ export function exportarJSON(): void {
 	link.click();
 	document.body.removeChild(link);
 	URL.revokeObjectURL(url);
+	registrarBackup();
 }
 
-export function importarJSON(
-	file: File,
-): Promise<{ sucesso: boolean; mensagem: string }> {
-	return new Promise((resolve) => {
-		const reader = new FileReader();
+export type ResultadoLeituraBackup =
+	| { sucesso: true; dados: DadosExportacao }
+	| { sucesso: false; mensagem: string };
 
-		reader.onload = (evento) => {
-			try {
-				const texto = evento.target?.result as string;
-				const dados = JSON.parse(texto) as DadosExportacao;
+const ehObjeto = (v: unknown): v is Record<string, unknown> =>
+	typeof v === "object" && v !== null;
 
-				if (
-					!dados.versao ||
-					!Array.isArray(dados.turmas) ||
-					!Array.isArray(dados.inscricoes) ||
-					!Array.isArray(dados.encontros) ||
-					!Array.isArray(dados.presencas)
-				) {
-					resolve({
-						sucesso: false,
-						mensagem:
-							"Arquivo inválido. Estrutura de dados não reconhecida.",
-					});
-					return;
-				}
+function validarBackup(dados: unknown): string | null {
+	if (!ehObjeto(dados) || typeof dados.versao !== "number") {
+		return "Arquivo inválido: não parece um backup do Catecumenato.";
+	}
+	for (const chave of ["turmas", "inscricoes", "encontros", "presencas"]) {
+		if (!Array.isArray(dados[chave])) return `Arquivo inválido: falta "${chave}".`;
+	}
+	const d = dados as unknown as DadosExportacao;
+	if (!d.turmas.every((t) => ehObjeto(t) && typeof t.id === "string" && typeof t.nome === "string"))
+		return "Arquivo inválido: turmas com formato inesperado.";
+	if (!d.inscricoes.every((i) => ehObjeto(i) && typeof i.id === "string" && ehObjeto(i.crismando)))
+		return "Arquivo inválido: inscrições com formato inesperado.";
+	if (!d.encontros.every((e) => ehObjeto(e) && typeof e.id === "string" && typeof e.turmaId === "string"))
+		return "Arquivo inválido: encontros com formato inesperado.";
+	if (!d.presencas.every((p) => ehObjeto(p) && typeof p.encontroId === "string" && typeof p.inscritoId === "string"))
+		return "Arquivo inválido: presenças com formato inesperado.";
+	return null;
+}
 
-				useTurmasStore.setState({ turmas: dados.turmas });
-				useEncontrosStore.setState({ encontros: dados.encontros });
-				usePresencasStore.setState({ presencas: dados.presencas });
-				useInscricoesStore.getState().setInscricoes(dados.inscricoes);
-
-				resolve({
-					sucesso: true,
-					mensagem: `Dados restaurados com sucesso: ${dados.turmas.length} turmas, ${dados.inscricoes.length} inscrições, ${dados.encontros.length} encontros, ${dados.presencas.length} presenças.`,
-				});
-			} catch (erro) {
-				resolve({
-					sucesso: false,
-					mensagem: `Erro ao ler arquivo: ${erro instanceof Error ? erro.message : "Erro desconhecido"}`,
-				});
-			}
+/** Lê e valida o arquivo de backup, sem alterar nenhum dado */
+export async function lerBackupJSON(file: File): Promise<ResultadoLeituraBackup> {
+	try {
+		const dados: unknown = JSON.parse(await file.text());
+		const erro = validarBackup(dados);
+		if (erro) return { sucesso: false, mensagem: erro };
+		return { sucesso: true, dados: dados as DadosExportacao };
+	} catch (erro) {
+		return {
+			sucesso: false,
+			mensagem: `Erro ao ler arquivo: ${erro instanceof Error ? erro.message : "erro desconhecido"}`,
 		};
+	}
+}
 
-		reader.onerror = () => {
-			resolve({
-				sucesso: false,
-				mensagem: "Erro ao ler o arquivo.",
-			});
-		};
+/** Substitui todos os dados pelos do backup (já validado por lerBackupJSON) */
+export function restaurarBackup(dados: DadosExportacao): void {
+	const inscricoes = dados.inscricoes.map((i) =>
+		recalcularInscricao({
+			...i,
+			turmaId: i.turmaId ?? null,
+			statusOverride: i.statusOverride ?? false,
+		}),
+	);
+	useTurmasStore.setState({ turmas: dados.turmas });
+	useEncontrosStore.setState({ encontros: dados.encontros });
+	usePresencasStore.setState({ presencas: dados.presencas });
+	useInscricoesStore.getState().setInscricoes(inscricoes);
+	registrarBackup();
+}
 
-		reader.readAsText(file);
-	});
+// ── Lembrete de backup ────────────────────────────────────────
+
+const CHAVE_ULTIMO_BACKUP = "catecumenato-ultimo-backup";
+
+function registrarBackup(): void {
+	try {
+		localStorage.setItem(CHAVE_ULTIMO_BACKUP, new Date().toISOString());
+	} catch {
+		// armazenamento indisponível: o lembrete apenas não é atualizado
+	}
+}
+
+export function obterUltimoBackup(): string | null {
+	try {
+		return localStorage.getItem(CHAVE_ULTIMO_BACKUP);
+	} catch {
+		return null;
+	}
 }

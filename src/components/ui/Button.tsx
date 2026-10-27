@@ -1,72 +1,91 @@
+import { cva, type VariantProps } from "class-variance-authority";
 import type * as React from "react";
 import { cn } from "../../utils/cn";
 
-interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-	variant?: "primary" | "secondary" | "danger" | "ghost" | "whatsapp";
-	size?: "sm" | "md" | "lg";
+export const buttonVariants = cva(
+	[
+		"inline-flex shrink-0 items-center justify-center gap-2 rounded-[9px] font-medium whitespace-nowrap select-none",
+		"transition-colors duration-150 cursor-pointer",
+		"disabled:pointer-events-none disabled:opacity-50",
+		"[&_svg]:size-4 [&_svg]:shrink-0",
+	],
+	{
+		variants: {
+			variant: {
+				primary: "bg-accent text-white hover:bg-accent-hover",
+				secondary:
+					"bg-surface text-ink shadow-[inset_0_0_0_1px_var(--color-line-strong)] hover:bg-sidebar",
+				ghost: "text-ink-2 hover:bg-sand hover:text-ink",
+				dark: "bg-ink text-bg hover:bg-ink-2",
+				danger:
+					"bg-surface text-danger-ink shadow-[inset_0_0_0_1px_rgb(179_38_30/0.35)] hover:bg-danger-soft",
+				"danger-solid": "bg-danger text-white hover:bg-danger-ink",
+			},
+			size: {
+				sm: "h-8 px-3 text-[13px]",
+				md: "h-10 px-4 text-sm",
+				lg: "h-11 px-5 text-[15px]",
+				icon: "size-10",
+				"icon-sm": "size-8",
+			},
+		},
+		defaultVariants: { variant: "primary", size: "md" },
+	},
+);
+
+export type ButtonVariantProps = VariantProps<typeof buttonVariants>;
+
+interface ButtonProps
+	extends React.ButtonHTMLAttributes<HTMLButtonElement>,
+		ButtonVariantProps {
 	loading?: boolean;
 }
 
-const variantClasses = {
-	primary: "bg-blue-600 text-white hover:bg-blue-700 border-blue-600",
-	secondary: "bg-white text-gray-700 hover:bg-gray-50 border-gray-300",
-	danger: "bg-red-600 text-white hover:bg-red-700 border-red-600",
-	ghost: "bg-transparent text-gray-600 hover:bg-gray-100 border-transparent",
-	whatsapp: "bg-green-500 text-white hover:bg-green-600 border-green-500",
-};
-
-const sizeClasses = {
-	sm: "px-3 py-1.5 text-sm",
-	md: "px-4 py-2 text-sm",
-	lg: "px-6 py-3 text-base",
-};
-
 export function Button({
 	className,
-	variant = "primary",
-	size = "md",
+	variant,
+	size,
 	loading = false,
 	disabled,
+	type = "button",
 	children,
 	...props
 }: ButtonProps) {
 	return (
 		<button
-			className={cn(
-				"inline-flex items-center justify-center gap-2 rounded-lg border font-medium transition-colors duration-150",
-				"focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2",
-				"disabled:cursor-not-allowed disabled:opacity-50",
-				variantClasses[variant],
-				sizeClasses[size],
-				className,
-			)}
+			type={type}
+			className={cn(buttonVariants({ variant, size }), className)}
 			disabled={disabled || loading}
+			aria-busy={loading || undefined}
 			{...props}
 		>
-			{loading && (
-				<svg
-					className="h-4 w-4 animate-spin"
-					viewBox="0 0 24 24"
-					fill="none"
-					aria-label="Carregando"
-					role="img"
-				>
-					<circle
-						className="opacity-25"
-						cx="12"
-						cy="12"
-						r="10"
-						stroke="currentColor"
-						strokeWidth="4"
-					/>
-					<path
-						className="opacity-75"
-						fill="currentColor"
-						d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
-					/>
-				</svg>
-			)}
+			{loading && <Spinner />}
 			{children}
 		</button>
+	);
+}
+
+export function Spinner({ className }: { className?: string }) {
+	return (
+		<svg
+			className={cn("size-4 animate-spin", className)}
+			viewBox="0 0 24 24"
+			fill="none"
+			aria-hidden="true"
+		>
+			<circle
+				className="opacity-25"
+				cx="12"
+				cy="12"
+				r="10"
+				stroke="currentColor"
+				strokeWidth="3"
+			/>
+			<path
+				className="opacity-75"
+				fill="currentColor"
+				d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+			/>
+		</svg>
 	);
 }

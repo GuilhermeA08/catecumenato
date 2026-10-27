@@ -1,317 +1,263 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Edit2, FileDown, GraduationCap, Plus, Trash2, Users } from "lucide-react";
-import { useState } from "react";
+import { FileDown, GraduationCap, Pencil, Plus, Trash2 } from "lucide-react";
+import { useMemo, useState } from "react";
 import { PageContainer } from "../../components/layout/PageContainer";
+import { Badge } from "../../components/ui/Badge";
 import { Button } from "../../components/ui/Button";
-import { Input } from "../../components/ui/Input";
+import { Card } from "../../components/ui/Card";
+import { confirmar } from "../../components/ui/Dialog";
+import { EmptyState } from "../../components/ui/misc";
+import { toast } from "../../components/ui/Toast";
 import { exportarTodasTurmasPDF } from "../../features/inscricoes/services/pdfService";
+import { plural } from "../../features/turmas/components/formatos";
+import { TurmaFormDialog } from "../../features/turmas/components/TurmaFormDialog";
+import { excluirTurma } from "../../stores/acoes";
+import { useEncontrosStore } from "../../stores/encontrosStore";
 import { useInscricoesStore } from "../../stores/inscricoesStore";
+import { usePresencasStore } from "../../stores/presencasStore";
 import { useTurmasStore } from "../../stores/turmasStore";
+import type { Turma } from "../../types/turma";
+import { calcularPercentualFrequencia } from "../../utils/presenca";
 
 export const Route = createFileRoute("/turmas/")({
 	component: TurmasPage,
 });
 
-const CORES = [
-	"#3b82f6",
-	"#10b981",
-	"#f59e0b",
-	"#ef4444",
-	"#8b5cf6",
-	"#ec4899",
-	"#14b8a6",
-	"#f97316",
-];
-
-interface FormTurma {
-	nome: string;
-	descricao: string;
-	cor: string;
-}
-
-const FORM_VAZIO: FormTurma = { nome: "", descricao: "", cor: CORES[0] };
-
-function TurmaCard({
-	turma,
-	membros,
-	onEditar,
-	onExcluir,
-}: {
-	turma: import("../../types/turma").Turma;
+interface ResumoTurma {
+	turma: Turma;
 	membros: number;
-	onEditar: (turma: import("../../types/turma").Turma) => void;
-	onExcluir: (id: string) => void;
-}) {
-	return (
-		<div className="flex flex-col gap-3 rounded-xl border border-gray-200 bg-white p-5 shadow-sm transition-shadow hover:shadow-md">
-			<div className="flex items-start justify-between gap-2">
-				<div className="flex items-center gap-3">
-					<div
-						className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg"
-						style={{
-							backgroundColor: turma.cor + "22",
-							border: `2px solid ${turma.cor}`,
-						}}
-					>
-						<GraduationCap className="h-5 w-5" style={{ color: turma.cor }} />
-					</div>
-					<div>
-						<h3 className="font-semibold text-gray-900">{turma.nome}</h3>
-						{turma.descricao && (
-							<p className="text-sm text-gray-500">{turma.descricao}</p>
-						)}
-					</div>
-				</div>
-				<div className="flex gap-1">
-					<button
-						type="button"
-						onClick={() => onEditar(turma)}
-						className="rounded-lg p-1.5 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-700"
-						title="Editar turma"
-					>
-						<Edit2 className="h-4 w-4" />
-					</button>
-					<button
-						type="button"
-						onClick={() => onExcluir(turma.id)}
-						className="rounded-lg p-1.5 text-gray-400 transition-colors hover:bg-red-50 hover:text-red-600"
-						title="Excluir turma"
-					>
-						<Trash2 className="h-4 w-4" />
-					</button>
-				</div>
-			</div>
-
-			<div className="flex items-center justify-between border-t border-gray-100 pt-3">
-				<div className="flex items-center gap-1.5 text-sm text-gray-500">
-					<Users className="h-4 w-4" />
-					<span>
-						{membros} {membros === 1 ? "membro" : "membros"}
-					</span>
-				</div>
-				<Link
-					to="/turmas/$id"
-					params={{ id: turma.id }}
-					className="text-sm font-medium text-blue-600 hover:text-blue-700 hover:underline"
-				>
-					Ver turma →
-				</Link>
-			</div>
-		</div>
-	);
-}
-
-function ModalTurma({
-	form,
-	modoEdicao,
-	onChange,
-	onSalvar,
-	onCancelar,
-}: {
-	form: FormTurma;
-	modoEdicao: boolean;
-	onChange: (campo: keyof FormTurma, valor: string) => void;
-	onSalvar: () => void;
-	onCancelar: () => void;
-}) {
-	return (
-		<div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-			<div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
-				<h2 className="mb-5 text-lg font-semibold text-gray-900">
-					{modoEdicao ? "Editar turma" : "Nova turma"}
-				</h2>
-
-				<div className="flex flex-col gap-4">
-					<Input
-						label="Nome da turma *"
-						value={form.nome}
-						onChange={(e) => onChange("nome", e.target.value)}
-						placeholder="Ex: Turma 2025 — Sábado"
-						autoFocus
-					/>
-					<Input
-						label="Descrição"
-						value={form.descricao}
-						onChange={(e) => onChange("descricao", e.target.value)}
-						placeholder="Ex: Encontros às 16h no salão paroquial"
-					/>
-
-					<fieldset>
-						<legend className="mb-2 block text-sm font-medium text-gray-700">
-							Cor
-						</legend>
-						<div className="flex flex-wrap gap-2">
-							{CORES.map((cor) => (
-								<button
-									key={cor}
-									type="button"
-									onClick={() => onChange("cor", cor)}
-									className="h-8 w-8 rounded-full transition-transform hover:scale-110"
-									style={{
-										backgroundColor: cor,
-										outline: form.cor === cor ? `3px solid ${cor}` : undefined,
-										outlineOffset: form.cor === cor ? "2px" : undefined,
-									}}
-									title={cor}
-									aria-pressed={form.cor === cor}
-								/>
-							))}
-						</div>
-					</fieldset>
-				</div>
-
-				<div className="mt-6 flex justify-end gap-3">
-					<Button variant="secondary" onClick={onCancelar}>
-						Cancelar
-					</Button>
-					<Button onClick={onSalvar} disabled={!form.nome.trim()}>
-						{modoEdicao ? "Salvar alterações" : "Criar turma"}
-					</Button>
-				</div>
-			</div>
-		</div>
-	);
+	encontros: number;
+	frequencia: number | null;
 }
 
 function TurmasPage() {
-	const { turmas, criarTurma, atualizarTurma, excluirTurma } = useTurmasStore();
-	const { inscricoes, vincularTurma } = useInscricoesStore();
+	const turmas = useTurmasStore((s) => s.turmas);
+	const inscricoes = useInscricoesStore((s) => s.inscricoes);
+	const encontros = useEncontrosStore((s) => s.encontros);
+	const presencas = usePresencasStore((s) => s.presencas);
 
-	const [mostrarModal, setMostrarModal] = useState(false);
-	const [editandoId, setEditandoId] = useState<string | null>(null);
-	const [form, setForm] = useState<FormTurma>(FORM_VAZIO);
+	const [dialogAberto, setDialogAberto] = useState(false);
+	const [editando, setEditando] = useState<Turma | null>(null);
 
-	function handleChange(campo: keyof FormTurma, valor: string) {
-		setForm((prev) => ({ ...prev, [campo]: valor }));
-	}
+	const resumos = useMemo<ResumoTurma[]>(
+		() =>
+			turmas.map((turma) => {
+				const membros = new Set(
+					inscricoes.filter((i) => i.turmaId === turma.id).map((i) => i.id),
+				);
+				const idsEncontros = new Set(
+					encontros.filter((e) => e.turmaId === turma.id).map((e) => e.id),
+				);
+				const daTurma = presencas.filter(
+					(p) => idsEncontros.has(p.encontroId) && membros.has(p.inscritoId),
+				);
+				return {
+					turma,
+					membros: membros.size,
+					encontros: idsEncontros.size,
+					frequencia: calcularPercentualFrequencia(daTurma),
+				};
+			}),
+		[turmas, inscricoes, encontros, presencas],
+	);
+
+	const semTurma = inscricoes.filter((i) => !i.turmaId).length;
+	const temMembros = resumos.some((r) => r.membros > 0);
 
 	function abrirNova() {
-		setEditandoId(null);
-		setForm(FORM_VAZIO);
-		setMostrarModal(true);
+		setEditando(null);
+		setDialogAberto(true);
 	}
 
-	function abrirEdicao(turma: import("../../types/turma").Turma) {
-		setEditandoId(turma.id);
-		setForm({
-			nome: turma.nome,
-			descricao: turma.descricao ?? "",
-			cor: turma.cor,
+	function abrirEdicao(turma: Turma) {
+		setEditando(turma);
+		setDialogAberto(true);
+	}
+
+	async function handleExcluir({ turma, membros, encontros }: ResumoTurma) {
+		const ok = await confirmar({
+			titulo: `Excluir a turma “${turma.nome}”?`,
+			descricao: (
+				<>
+					{encontros > 0
+						? `Os ${plural(encontros, "encontro", "encontros")} da turma e todas as presenças registradas serão apagados. `
+						: ""}
+					{membros > 0
+						? `${membros === 1 ? "O membro ficará" : `Os ${membros} membros ficarão`} sem turma. `
+						: ""}
+					Esta ação não pode ser desfeita.
+				</>
+			),
+			confirmar: "Excluir turma",
+			perigo: true,
 		});
-		setMostrarModal(true);
+		if (!ok) return;
+		excluirTurma(turma.id);
+		toast.sucesso(`Turma “${turma.nome}” excluída.`);
 	}
-
-	function handleSalvar() {
-		if (!form.nome.trim()) return;
-		if (editandoId) {
-			atualizarTurma(editandoId, {
-				nome: form.nome.trim(),
-				descricao: form.descricao.trim() || null,
-				cor: form.cor,
-			});
-		} else {
-			criarTurma({ nome: form.nome, descricao: form.descricao, cor: form.cor });
-		}
-		setMostrarModal(false);
-	}
-
-	function handleExcluir(id: string) {
-		const turma = turmas.find((t) => t.id === id);
-		const membros = inscricoes.filter((i) => i.turmaId === id);
-		const msg =
-			membros.length > 0
-				? `A turma "${turma?.nome}" tem ${membros.length} membro(s). Ao excluir, eles ficarão sem turma. Confirma?`
-				: `Deseja excluir a turma "${turma?.nome}"?`;
-		if (confirm(msg)) {
-			// Desvincular todos os inscritos desta turma antes de excluí-la
-			for (const inscrito of membros) {
-				vincularTurma(inscrito.id, null);
-			}
-			excluirTurma(id);
-		}
-	}
-
-	function getMembros(turmaId: string) {
-		return inscricoes.filter((i) => i.turmaId === turmaId).length;
-	}
-
-	const temMembros = turmas.some((t) => inscricoes.some((i) => i.turmaId === t.id));
 
 	return (
-		<>
-			<PageContainer
-				title="Turmas"
-				description="Crie turmas e organize os inscritos por grupos"
-				actions={
-					<div className="flex items-center gap-2">
-						{temMembros && (
-							<Button
-								variant="secondary"
-								size="sm"
-								onClick={() => exportarTodasTurmasPDF(turmas, inscricoes)}
-								title="Exportar todas as turmas em PDF"
-							>
-								<FileDown className="h-4 w-4" />
-								Exportar todas
+		<PageContainer
+			title="Turmas"
+			description="Organize os inscritos em grupos e acompanhe a frequência."
+			actions={
+				<>
+					{temMembros && (
+						<Button
+							variant="secondary"
+							onClick={() => exportarTodasTurmasPDF(turmas, inscricoes)}
+						>
+							<FileDown />
+							Exportar todas (PDF)
+						</Button>
+					)}
+					<Button onClick={abrirNova}>
+						<Plus />
+						Nova turma
+					</Button>
+				</>
+			}
+		>
+			{turmas.length === 0 ? (
+				<Card>
+					<EmptyState
+						icon={<GraduationCap />}
+						title="Nenhuma turma criada ainda"
+						action={
+							<Button onClick={abrirNova}>
+								<Plus />
+								Criar primeira turma
 							</Button>
+						}
+					>
+						Crie uma turma para começar a organizar os inscritos e registrar a
+						chamada dos encontros.
+					</EmptyState>
+				</Card>
+			) : (
+				<section aria-label="Lista de turmas" className="flex flex-col gap-3">
+					<div className="flex flex-wrap items-center gap-2 text-[13px] text-muted">
+						<span>{plural(turmas.length, "turma", "turmas")}</span>
+						{semTurma > 0 && (
+							<Link to="/inscritos" search={{ turma: "sem" }} className="no-underline">
+								<Badge tone="warn">
+									{plural(semTurma, "inscrito sem turma", "inscritos sem turma")}
+								</Badge>
+							</Link>
 						)}
-						<Button onClick={abrirNova} size="sm">
-							<Plus className="h-4 w-4" />
-							Nova turma
-						</Button>
 					</div>
-				}
-			>
-				{turmas.length === 0 ? (
-					<div className="flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-gray-200 py-20 text-center">
-						<GraduationCap className="mb-4 h-12 w-12 text-gray-300" />
-						<p className="text-lg font-medium text-gray-500">
-							Nenhuma turma criada ainda
-						</p>
-						<p className="mt-1 text-sm text-gray-400">
-							Crie uma turma para começar a organizar os inscritos
-						</p>
-						<Button onClick={abrirNova} className="mt-6">
-							<Plus className="h-4 w-4" />
-							Criar primeira turma
-						</Button>
-					</div>
-				) : (
-					<>
-						<div className="mb-4 flex items-center gap-2 text-sm text-gray-500">
-							<span>
-								{turmas.length} {turmas.length === 1 ? "turma" : "turmas"}
-							</span>
-							{inscricoes.filter((i) => !i.turmaId).length > 0 && (
-								<span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700">
-									{inscricoes.filter((i) => !i.turmaId).length} sem turma
-								</span>
-							)}
-						</div>
-						<div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-							{turmas.map((turma) => (
+					<ul className="m-0 grid list-none grid-cols-[repeat(auto-fill,minmax(260px,1fr))] gap-4 p-0">
+						{resumos.map((resumo) => (
+							<li key={resumo.turma.id}>
 								<TurmaCard
-									key={turma.id}
-									turma={turma}
-									membros={getMembros(turma.id)}
-									onEditar={abrirEdicao}
-									onExcluir={handleExcluir}
+									resumo={resumo}
+									onEditar={() => abrirEdicao(resumo.turma)}
+									onExcluir={() => handleExcluir(resumo)}
 								/>
-							))}
-						</div>
-					</>
-				)}
-			</PageContainer>
-
-			{mostrarModal && (
-				<ModalTurma
-					form={form}
-					modoEdicao={!!editandoId}
-					onChange={handleChange}
-					onSalvar={handleSalvar}
-					onCancelar={() => setMostrarModal(false)}
-				/>
+							</li>
+						))}
+					</ul>
+				</section>
 			)}
-		</>
+
+			<TurmaFormDialog
+				open={dialogAberto}
+				onOpenChange={setDialogAberto}
+				turma={editando}
+			/>
+		</PageContainer>
+	);
+}
+
+function TurmaCard({
+	resumo: { turma, membros, encontros, frequencia },
+	onEditar,
+	onExcluir,
+}: {
+	resumo: ResumoTurma;
+	onEditar: () => void;
+	onExcluir: () => void;
+}) {
+	const baixa = frequencia !== null && frequencia < 75;
+	return (
+		<Card className="flex h-full flex-col transition-shadow hover:shadow-pop">
+			<div className="flex items-start gap-3 px-5 pt-5">
+				<span
+					className="mt-1.5 size-3.5 shrink-0 rounded-[4px]"
+					style={{ backgroundColor: turma.cor }}
+					aria-hidden="true"
+				/>
+				<div className="min-w-0 flex-1">
+					<h2 className="font-serif text-xl leading-tight font-medium">
+						<Link
+							to="/turmas/$id"
+							params={{ id: turma.id }}
+							className="text-ink no-underline hover:text-accent"
+						>
+							{turma.nome}
+						</Link>
+					</h2>
+					{turma.descricao && (
+						<p className="mt-1 line-clamp-2 text-[13px] text-muted">
+							{turma.descricao}
+						</p>
+					)}
+				</div>
+				<div className="-mt-1 -mr-2 flex shrink-0">
+					<Button
+						variant="ghost"
+						size="icon-sm"
+						onClick={onEditar}
+						aria-label={`Editar turma ${turma.nome}`}
+						title="Editar turma"
+					>
+						<Pencil />
+					</Button>
+					<Button
+						variant="ghost"
+						size="icon-sm"
+						onClick={onExcluir}
+						aria-label={`Excluir turma ${turma.nome}`}
+						title="Excluir turma"
+						className="hover:bg-danger-soft hover:text-danger-ink"
+					>
+						<Trash2 />
+					</Button>
+				</div>
+			</div>
+
+			<div className="mt-auto flex flex-col gap-2 px-5 pt-5 pb-5">
+				<div className="flex items-baseline justify-between gap-2 text-[13px]">
+					<span className="text-muted">
+						{plural(membros, "membro", "membros")} ·{" "}
+						{plural(encontros, "encontro", "encontros")}
+					</span>
+					<span
+						className={
+							frequencia === null
+								? "text-subtle"
+								: baixa
+									? "font-medium text-danger-ink tabular-nums"
+									: "font-medium text-ink tabular-nums"
+						}
+					>
+						{frequencia === null ? "sem chamada" : `${frequencia}%`}
+					</span>
+				</div>
+				<div
+					className="h-1.5 overflow-hidden rounded-full bg-sand"
+					role="progressbar"
+					aria-label={`Frequência da turma ${turma.nome}`}
+					aria-valuenow={frequencia ?? 0}
+					aria-valuemin={0}
+					aria-valuemax={100}
+				>
+					<div
+						className="h-full rounded-full transition-[width] duration-500"
+						style={{ width: `${frequencia ?? 0}%`, backgroundColor: turma.cor }}
+					/>
+				</div>
+			</div>
+		</Card>
 	);
 }

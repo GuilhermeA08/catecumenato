@@ -1,5 +1,7 @@
 import Papa from "papaparse";
+import { gerarId } from "../../../utils/id";
 import { COLUNAS_CSV, ORDEM_COLUNAS_CSV } from "../../../constants/colunasCSV";
+import { Status } from "../../../types/enums";
 import type { Inscricao } from "../../../types/inscricao";
 import type { Turma } from "../../../types/turma";
 import {
@@ -81,7 +83,7 @@ function linhaParaInscricao(linha: Record<string, unknown>): Inscricao {
 	>;
 	const inscricaoComId = {
 		...inscricaoBase,
-		id: crypto.randomUUID(),
+		id: gerarId(),
 		statusOverride: false,
 		atualizadoEm: new Date().toISOString(),
 	} as Inscricao;
@@ -120,6 +122,17 @@ export async function parseCSV(
 					try {
 						const inscricao = linhaParaInscricao(linha);
 						// Resolver turma pelo nome na coluna TURMA
+						// Status manual exportado anteriormente (coluna STATUS)
+						const statusCsv = normalizar(linha["STATUS"])?.toLowerCase();
+						const statusInformado = statusCsv?.startsWith("conclu")
+							? Status.CONCLUIDO
+							: statusCsv?.startsWith("pend")
+								? Status.PENDENTE
+								: null;
+						if (statusInformado && statusInformado !== inscricao.status) {
+							inscricao.status = statusInformado;
+							inscricao.statusOverride = true;
+						}
 						const nomeTurma = normalizar(linha["TURMA"]);
 						if (nomeTurma && resolverTurma) {
 							inscricao.turmaId = resolverTurma(nomeTurma);
@@ -166,7 +179,7 @@ export function exportarCSV(
 
 		// Status
 		linha["STATUS"] =
-			inscricao.status === "concluido" ? "Concluído" : "Pendente";
+			inscricao.status === Status.CONCLUIDO ? "Concluído" : "Pendente";
 
 		for (const coluna of ORDEM_COLUNAS_CSV) {
 			const path = COLUNAS_CSV[coluna] ?? "";
@@ -220,7 +233,7 @@ export function recalcularInscricao(inscricao: Inscricao): Inscricao {
 
 // Gera CSV de modelo para download (template vazio)
 export function exportarTemplate(): void {
-	const csv = Papa.unparse({ fields: ORDEM_COLUNAS_CSV, data: [] });
+	const csv = Papa.unparse({ fields: ["TURMA", ...ORDEM_COLUNAS_CSV], data: [] });
 	const blob = new Blob(["\ufeff" + csv], { type: "text/csv;charset=utf-8;" });
 	const url = URL.createObjectURL(blob);
 	const link = document.createElement("a");

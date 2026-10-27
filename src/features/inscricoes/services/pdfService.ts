@@ -1,9 +1,11 @@
+import { toast } from "../../../components/ui/Toast";
 import { useEncontrosStore } from "../../../stores/encontrosStore";
 import { usePresencasStore } from "../../../stores/presencasStore";
 import { StatusPresenca } from "../../../types/enums";
 import type { Inscricao } from "../../../types/inscricao";
 import type { Turma } from "../../../types/turma";
 import { calcularIdade } from "../../../utils/mascaras";
+import { calcularPercentualFrequencia } from "../../../utils/presenca";
 
 export function exportarTodasTurmasPDF(
 	turmas: Turma[],
@@ -359,7 +361,7 @@ export function exportarTodasTurmasPDF(
 
 	const janela = window.open("", "_blank");
 	if (!janela) {
-		alert(
+		toast.erro(
 			"Não foi possível abrir a janela de impressão. Verifique se pop-ups estão permitidos.",
 		);
 		return;
@@ -380,7 +382,6 @@ export function exportarTurmaPDF(turma: Turma, membros: Inscricao[]): void {
 	const encontrosDaTurma = useEncontrosStore.getState().getByTurma(turma.id);
 	const encontroIdsDaTurma = new Set(encontrosDaTurma.map((e) => e.id));
 	const { getByInscrito } = usePresencasStore.getState();
-	const totalEncontrosDaTurma = encontrosDaTurma.length;
 
 	const comTelefone = membros.filter((m) => m.crismando.celular).length;
 
@@ -396,21 +397,19 @@ export function exportarTurmaPDF(turma: Turma, membros: Inscricao[]): void {
 			const presencasDoMembro = getByInscrito(m.id).filter((p) =>
 				encontroIdsDaTurma.has(p.encontroId),
 			);
+			// Mesma regra da tela: só encontros com chamada feita contam
+			const registradas = presencasDoMembro.filter(
+				(p) => p.status !== StatusPresenca.PENDENTE,
+			).length;
 			const diasValidos = presencasDoMembro.filter(
 				(p) =>
 					p.status === StatusPresenca.PRESENTE ||
 					p.status === StatusPresenca.FALTA_JUSTIFICADA,
 			).length;
-			const percentual =
-				totalEncontrosDaTurma === 0
-					? 0
-					: Math.round((diasValidos / totalEncontrosDaTurma) * 100);
+			const percentual = calcularPercentualFrequencia(presencasDoMembro);
 			const presencaStr =
-				totalEncontrosDaTurma === 0
-					? "—"
-					: `${diasValidos}/${totalEncontrosDaTurma}`;
-			const percentualStr =
-				totalEncontrosDaTurma === 0 ? "—" : `${percentual}%`;
+				registradas === 0 ? "—" : `${diasValidos}/${registradas}`;
+			const percentualStr = percentual === null ? "—" : `${percentual}%`;
 			return `
 		<tr class="${idx % 2 === 0 ? "par" : "impar"}">
 			<td class="num">${idx + 1}</td>
@@ -666,7 +665,7 @@ export function exportarTurmaPDF(turma: Turma, membros: Inscricao[]): void {
 
 	const janela = window.open("", "_blank");
 	if (!janela) {
-		alert(
+		toast.erro(
 			"Não foi possível abrir a janela de impressão. Verifique se pop-ups estão permitidos.",
 		);
 		return;
@@ -713,7 +712,7 @@ export function exportarTurmaFichasInscricaoPDF(
 
 	const janela = window.open("", "_blank");
 	if (!janela) {
-		alert(
+		toast.erro(
 			"Não foi possível abrir a janela de impressão. Verifique se pop-ups estão permitidos.",
 		);
 		return;
@@ -745,7 +744,7 @@ export function exportarFichaEmBrancoPDF(): void {
 
 	const janela = window.open("", "_blank");
 	if (!janela) {
-		alert(
+		toast.erro(
 			"Não foi possível abrir a janela de impressão. Verifique se pop-ups estão permitidos.",
 		);
 		return;

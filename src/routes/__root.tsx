@@ -1,5 +1,7 @@
 import { createRootRoute, Outlet } from "@tanstack/react-router";
-import { Header } from "../components/layout/Header";
+import { AppShell } from "../components/layout/AppShell";
+import { ConfirmHost } from "../components/ui/Dialog";
+import { Toaster } from "../components/ui/Toast";
 
 import "../styles.css";
 
@@ -9,9 +11,12 @@ export const Route = createRootRoute({
 
 function RootComponent() {
 	return (
-		<div className="min-h-screen bg-gray-50">
-			<Header />
-			<Outlet />
-		</div>
+		<>
+			<AppShell>
+				<Outlet />
+			</AppShell>
+			<ConfirmHost />
+			<Toaster />
+		</>
 	);
 }

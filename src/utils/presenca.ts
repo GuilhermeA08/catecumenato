@@ -39,18 +39,26 @@ export function resumirStatusPresencas(
 	return resumo;
 }
 
+/**
+ * Percentual de frequência considerando apenas encontros com chamada feita
+ * (presenças ainda PENDENTE não entram no denominador).
+ * Por padrão, falta justificada conta como presença.
+ */
 export function calcularPercentualFrequencia(
 	presencas: Presenca[],
-	incluirJustificada = false,
-): number {
-	if (presencas.length === 0) return 0;
+	incluirJustificada = true,
+): number | null {
+	const registradas = presencas.filter(
+		(p) => p.status !== StatusPresenca.PENDENTE,
+	);
+	if (registradas.length === 0) return null;
 
-	const presencasValidas = presencas.filter((p) =>
+	const validas = registradas.filter((p) =>
 		incluirJustificada
 			? p.status === StatusPresenca.PRESENTE ||
 				p.status === StatusPresenca.FALTA_JUSTIFICADA
 			: p.status === StatusPresenca.PRESENTE,
 	);
 
-	return Math.round((presencasValidas.length / presencas.length) * 100);
+	return Math.round((validas.length / registradas.length) * 100);
 }

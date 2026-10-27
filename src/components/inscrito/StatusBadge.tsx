@@ -1,26 +1,23 @@
-import { CheckCircle, Clock } from "lucide-react";
 import { Status } from "../../types/enums";
 import { Badge } from "../ui/Badge";
 
 interface StatusBadgeProps {
 	status: Status;
-	size?: "sm" | "md";
+	/** Mostra o percentual junto (ex.: "Pendente · 42%") */
+	completude?: number;
+	manual?: boolean;
 }
 
-export function StatusBadge({ status, size = "md" }: StatusBadgeProps) {
+export function StatusBadge({ status, completude, manual }: StatusBadgeProps) {
+	const sufixo = manual ? " (manual)" : "";
 	if (status === Status.CONCLUIDO) {
-		return (
-			<Badge variant="success" className={size === "sm" ? "text-xs" : ""}>
-				<CheckCircle className="mr-1 h-3 w-3" />
-				Concluído
-			</Badge>
-		);
+		return <Badge tone="ok">Concluído{sufixo}</Badge>;
 	}
-
 	return (
-		<Badge variant="warning" className={size === "sm" ? "text-xs" : ""}>
-			<Clock className="mr-1 h-3 w-3" />
+		<Badge tone="warn">
 			Pendente
+			{completude !== undefined && ` · ${completude}%`}
+			{sufixo}
 		</Badge>
 	);
 }
